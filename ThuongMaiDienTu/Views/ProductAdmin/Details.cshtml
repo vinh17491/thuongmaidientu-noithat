@@ -1,0 +1,119 @@
+@model ThuongMaiDienTu.ViewModels.ProductAdminDetailsViewModel
+
+@{
+    ViewData["Title"] = "Chi tiết sản phẩm";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.ProductName</h1>
+        <p class="text-muted mb-0">Chi tiết quản trị sản phẩm #@Model.ProductId</p>
+    </div>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.ProductId" class="btn btn-warning">Sửa</a>
+        <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Ảnh chính</div>
+            <div class="card-body text-center">
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="@Model.AltText"
+                         class="img-fluid rounded border"
+                         style="max-height: 320px; object-fit: contain;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="bg-light border rounded text-muted align-items-center justify-content-center"
+                         style="display:none; min-height:240px;">Không tải được ảnh</div>
+                    <p class="small text-muted mt-2 mb-0">@Model.AltText</p>
+                }
+                else
+                {
+                    <div class="bg-light border rounded text-muted d-flex align-items-center justify-content-center"
+                         style="min-height:240px;">Chưa có ảnh</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Thông tin sản phẩm</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Danh mục</dt>
+                    <dd class="col-sm-8">@Model.CategoryName</dd>
+                    <dt class="col-sm-4">Cửa hàng</dt>
+                    <dd class="col-sm-8">@Model.StoreName</dd>
+                    <dt class="col-sm-4">Slug</dt>
+                    <dd class="col-sm-8"><code>@Model.Slug</code></dd>
+                    <dt class="col-sm-4">Thương hiệu</dt>
+                    <dd class="col-sm-8">@(Model.Brand ?? "Chưa cập nhật")</dd>
+                    <dt class="col-sm-4">Trạng thái</dt>
+                    <dd class="col-sm-8">@Model.ProductStatus</dd>
+                    <dt class="col-sm-4">Ngày tạo</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                    <dt class="col-sm-4">Cập nhật</dt>
+                    <dd class="col-sm-8">@(Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">SKU, giá và tồn kho</div>
+            <div class="card-body">
+                @if (Model.SkuId.HasValue)
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Mã SKU</dt>
+                        <dd class="col-sm-8"><code>@Model.SkuCode</code></dd>
+                        <dt class="col-sm-4">Giá thường</dt>
+                        <dd class="col-sm-8">@Model.Price?.ToString("N0") đ</dd>
+                        <dt class="col-sm-4">Giá khuyến mãi</dt>
+                        <dd class="col-sm-8">@(Model.SalePrice.HasValue ? $"{Model.SalePrice.Value:N0} đ" : "Không áp dụng")</dd>
+                        <dt class="col-sm-4">Giá hiện hành</dt>
+                        <dd class="col-sm-8"><strong>@Model.CurrentPrice?.ToString("N0") đ</strong></dd>
+                        <dt class="col-sm-4">Trạng thái khuyến mãi</dt>
+                        <dd class="col-sm-8">@Model.PromotionStatus</dd>
+                        <dt class="col-sm-4">Thời gian khuyến mãi</dt>
+                        <dd class="col-sm-8">
+                            @(Model.SaleStart?.ToString("dd/MM/yyyy HH:mm") ?? "Không giới hạn")
+                            —
+                            @(Model.SaleEnd?.ToString("dd/MM/yyyy HH:mm") ?? "Không giới hạn")
+                        </dd>
+                        <dt class="col-sm-4">Tồn kho</dt>
+                        <dd class="col-sm-8">@Model.StockQuantity?.ToString("N0")</dd>
+                        <dt class="col-sm-4">Trạng thái SKU</dt>
+                        <dd class="col-sm-8">@Model.SkuStatus</dd>
+                        <dt class="col-sm-4">Đã phát sinh đơn</dt>
+                        <dd class="col-sm-8">@(Model.HasOrderItems ? "Có — chỉ được ẩn, không xóa" : "Chưa")</dd>
+                    </dl>
+                }
+                else
+                {
+                    <div class="alert alert-warning mb-0">Dữ liệu cũ chưa có SKU. Hãy vào Sửa để bổ sung.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header fw-semibold">Mô tả và SEO</div>
+    <div class="card-body">
+        <h2 class="h6">Mô tả ngắn</h2>
+        <p>@(Model.ShortDescription ?? "Chưa cập nhật")</p>
+        <h2 class="h6">Mô tả chi tiết</h2>
+        <p style="white-space: pre-line;">@(Model.Description ?? "Chưa cập nhật")</p>
+        <hr />
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Tiêu đề SEO</dt>
+            <dd class="col-sm-9">@(Model.SeoTitle ?? "Chưa cập nhật")</dd>
+            <dt class="col-sm-3">Mô tả SEO</dt>
+            <dd class="col-sm-9">@(Model.SeoDescription ?? "Chưa cập nhật")</dd>
+        </dl>
+    </div>
+</div>

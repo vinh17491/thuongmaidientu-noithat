@@ -1,0 +1,22 @@
+﻿.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# Environment và secret
+.env
+.env.*
+appsettings.Development.json
+
+# Build output
+publish/
+TestResults/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

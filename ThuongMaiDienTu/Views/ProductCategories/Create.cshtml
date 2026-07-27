@@ -1,0 +1,150 @@
+@model ThuongMaiDienTu.Models.ProductCategory
+
+@{
+    ViewData["Title"] = "Thêm danh mục";
+}
+
+<div class="container mt-4">
+    <h1>Thêm danh mục</h1>
+    <p class="text-muted">Tạo danh mục sản phẩm mới.</p>
+
+    <hr />
+
+    <div class="row">
+        <div class="col-md-7">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="CategoryName"
+                           class="form-label">
+                        Tên danh mục
+                    </label>
+
+                    <input asp-for="CategoryName"
+                           class="form-control" />
+
+                    <span asp-validation-for="CategoryName"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ParentId"
+                           class="form-label">
+                        Danh mục cha
+                    </label>
+
+                    <select asp-for="ParentId"
+                            asp-items="ViewBag.ParentId"
+                            class="form-select">
+                        <option value="">-- Danh mục gốc --</option>
+                    </select>
+
+                    <span asp-validation-for="ParentId"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Slug"
+                           class="form-label">
+                        Slug
+                    </label>
+
+                    <input asp-for="Slug"
+                           class="form-control"
+                           placeholder="vi-du: thiet-bi-nha-bep" />
+
+                    <span asp-validation-for="Slug"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description"
+                           class="form-label">
+                        Mô tả
+                    </label>
+
+                    <textarea asp-for="Description"
+                              class="form-control"
+                              rows="3"></textarea>
+
+                    <span asp-validation-for="Description"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="SeoTitle"
+                           class="form-label">
+                        Tiêu đề SEO
+                    </label>
+
+                    <input asp-for="SeoTitle"
+                           class="form-control" />
+
+                    <span asp-validation-for="SeoTitle"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="SeoDescription"
+                           class="form-label">
+                        Mô tả SEO
+                    </label>
+
+                    <textarea asp-for="SeoDescription"
+                              class="form-control"
+                              rows="2"></textarea>
+
+                    <span asp-validation-for="SeoDescription"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Status"
+                           class="form-label">
+                        Trạng thái
+                    </label>
+
+                    <select asp-for="Status" class="form-select">
+                        <option value="ACTIVE">Đang hoạt động</option>
+                        <option value="INACTIVE">Ngừng hoạt động</option>
+                    </select>
+
+                    <span asp-validation-for="Status"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="SortOrder"
+                           class="form-label">
+                        Thứ tự hiển thị
+                    </label>
+
+                    <input asp-for="SortOrder"
+                           class="form-control"
+                           type="number"
+                           min="0" />
+
+                    <span asp-validation-for="SortOrder"
+                          class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Lưu danh mục
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">
+                    Quay lại
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

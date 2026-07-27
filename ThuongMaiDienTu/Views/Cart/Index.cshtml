@@ -1,0 +1,172 @@
+@model ThuongMaiDienTu.ViewModels.CartViewModel
+
+@{
+    ViewData["Title"] = "Giỏ hàng";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1">Giỏ hàng của bạn</h1>
+        <p class="text-muted mb-0">Giá và tồn kho được cập nhật trực tiếp từ hệ thống.</p>
+    </div>
+    <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary">
+        Tiếp tục mua hàng
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (Model.IsEmpty)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <h2 class="h4">Giỏ hàng đang trống</h2>
+            <p class="text-muted">Hãy chọn sản phẩm phù hợp từ cửa hàng.</p>
+            <a asp-controller="Products" asp-action="Index" class="btn btn-primary">
+                Xem sản phẩm
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-9">
+            <div class="vstack gap-3">
+                @foreach (var item in Model.Items)
+                {
+                    <article class="card shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-4 col-md-2">
+                                    <div class="cart-image-wrap">
+                                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                        {
+                                            <img src="@item.ImageUrl"
+                                                 alt="@(item.AltText ?? item.ProductName)"
+                                                 class="cart-item-image"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                            <div class="product-image-placeholder align-items-center justify-content-center text-muted small"
+                                                 style="display:none;">Không ảnh</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="product-image-placeholder d-flex align-items-center justify-content-center text-muted small">
+                                                Không ảnh
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="col-8 col-md-4">
+                                    <h2 class="h5 mb-1">
+                                        <a asp-controller="Products" asp-action="Details"
+                                           asp-route-id="@item.ProductId"
+                                           class="text-decoration-none">@item.ProductName</a>
+                                    </h2>
+                                    <div class="small text-muted">SKU: <code>@item.SkuCode</code></div>
+
+                                    @if (item.IsAvailable)
+                                    {
+                                        <div class="small text-success mt-2">@item.AvailabilityMessage</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-danger mt-2">@item.AvailabilityMessage</div>
+                                    }
+                                </div>
+
+                                <div class="col-md-2 text-md-end">
+                                    @if (item.IsOnSale)
+                                    {
+                                        <div class="small text-muted text-decoration-line-through">
+                                            @item.Price.ToString("N0") đ
+                                        </div>
+                                        <div class="fw-semibold text-danger">
+                                            @item.CurrentPrice.ToString("N0") đ
+                                        </div>
+                                        <span class="badge bg-danger">-@item.DiscountPercent%</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-semibold">@item.CurrentPrice.ToString("N0") đ</div>
+                                    }
+                                    <div class="small text-muted">Tồn kho: @item.StockQuantity</div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    @if (item.CanUpdateQuantity)
+                                    {
+                                        <form asp-action="Update" method="post" class="d-flex gap-1">
+                                            <input type="hidden" name="CartItemId" value="@item.CartItemId" />
+                                            <input type="number" name="Quantity" value="@item.Quantity"
+                                                   min="1" max="@item.StockQuantity"
+                                                   class="form-control form-control-sm"
+                                                   aria-label="Số lượng @item.ProductName" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                Cập nhật
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <div>Số lượng: <strong>@item.Quantity</strong></div>
+                                    }
+                                </div>
+
+                                <div class="col-md-2 text-md-end">
+                                    <div class="small text-muted">Thành tiền</div>
+                                    <div class="fw-bold">@item.LineTotal.ToString("N0") đ</div>
+                                    <form asp-action="Remove" method="post" class="mt-2">
+                                        <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Xóa
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <aside class="card shadow-sm">
+                <div class="card-header fw-semibold">Tóm tắt giỏ hàng</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tổng số lượng</span>
+                        <strong>@Model.TotalQuantity</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <span>Tạm tính</span>
+                        <strong class="text-danger">@Model.Subtotal.ToString("N0") đ</strong>
+                    </div>
+                    <p class="small text-muted mt-3">
+                        Giá và tồn kho sẽ được kiểm tra lại khi đặt hàng.
+                    </p>
+                    @if (Model.Items.All(item => item.IsAvailable))
+                    {
+                        <a asp-controller="Checkout" asp-action="Index"
+                           class="btn btn-primary w-100">Tiến hành đặt hàng</a>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-secondary w-100" disabled>
+                            Giỏ hàng chưa hợp lệ
+                        </button>
+                    }
+                </div>
+            </aside>
+        </div>
+    </div>
+}

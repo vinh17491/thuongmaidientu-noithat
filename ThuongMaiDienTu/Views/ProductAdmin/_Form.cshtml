@@ -1,0 +1,143 @@
+@model ThuongMaiDienTu.ViewModels.ProductAdminFormViewModel
+
+<input asp-for="ProductId" type="hidden" />
+<input asp-for="SkuId" type="hidden" />
+<input asp-for="ImageId" type="hidden" />
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">Thông tin sản phẩm</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="ProductName" class="form-label"></label>
+                <input asp-for="ProductName" class="form-control" />
+                <span asp-validation-for="ProductName" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="CategoryId" class="form-label"></label>
+                <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select">
+                    <option value="">-- Chọn danh mục --</option>
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Slug" class="form-label"></label>
+                <input asp-for="Slug" class="form-control" placeholder="vi-du: noi-com-dien" />
+                <span asp-validation-for="Slug" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Brand" class="form-label"></label>
+                <input asp-for="Brand" class="form-control" />
+                <span asp-validation-for="Brand" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Cửa hàng</label>
+                <input class="form-control" value="@ViewBag.StoreName" disabled />
+                <div class="form-text">Cửa hàng được xác định tại server.</div>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ProductStatus" class="form-label"></label>
+                <select asp-for="ProductStatus" asp-items="ViewBag.ProductStatuses" class="form-select"></select>
+                <span asp-validation-for="ProductStatus" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="ShortDescription" class="form-label"></label>
+                <textarea asp-for="ShortDescription" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="ShortDescription" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">SKU, giá và tồn kho</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="SkuCode" class="form-label"></label>
+                <input asp-for="SkuCode" class="form-control" />
+                <span asp-validation-for="SkuCode" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SkuStatus" class="form-label"></label>
+                <select asp-for="SkuStatus" asp-items="ViewBag.SkuStatuses" class="form-select"></select>
+                <span asp-validation-for="SkuStatus" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Price" class="form-label"></label>
+                <div class="input-group">
+                    <input asp-for="Price" class="form-control" type="number" min="0.01" step="0.01" />
+                    <span class="input-group-text">đ</span>
+                </div>
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="SalePrice" class="form-label"></label>
+                <div class="input-group">
+                    <input asp-for="SalePrice" class="form-control" type="number" min="0.01" step="0.01" />
+                    <span class="input-group-text">đ</span>
+                </div>
+                <span asp-validation-for="SalePrice" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="StockQuantity" class="form-label"></label>
+                <input asp-for="StockQuantity" class="form-control" type="number" min="0" />
+                <span asp-validation-for="StockQuantity" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="SaleStart" class="form-label"></label>
+                <input asp-for="SaleStart" asp-format="{0:yyyy-MM-ddTHH:mm}"
+                       class="form-control" type="datetime-local" />
+                <span asp-validation-for="SaleStart" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SaleEnd" class="form-label"></label>
+                <input asp-for="SaleEnd" asp-format="{0:yyyy-MM-ddTHH:mm}"
+                       class="form-control" type="datetime-local" />
+                <span asp-validation-for="SaleEnd" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">Ảnh chính và SEO</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="ImageUrl" class="form-label"></label>
+                <input asp-for="ImageUrl" class="form-control"
+                       placeholder="https://... hoặc /images/products/..." />
+                <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                <div class="form-text">Để trống nếu chưa có ảnh; hệ thống sẽ hiển thị placeholder.</div>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="AltText" class="form-label"></label>
+                <input asp-for="AltText" class="form-control" />
+                <span asp-validation-for="AltText" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SeoTitle" class="form-label"></label>
+                <input asp-for="SeoTitle" class="form-control" />
+                <span asp-validation-for="SeoTitle" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SeoDescription" class="form-label"></label>
+                <textarea asp-for="SeoDescription" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="SeoDescription" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</div>

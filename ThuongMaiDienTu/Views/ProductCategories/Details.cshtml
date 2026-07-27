@@ -1,0 +1,67 @@
+@model ThuongMaiDienTu.Models.ProductCategory
+
+@{
+    ViewData["Title"] = "Chi tiết danh mục";
+}
+
+<div class="container mt-4">
+    <h1>Chi tiết danh mục</h1>
+
+    <hr />
+
+    <dl class="row">
+        <dt class="col-sm-3">Mã danh mục</dt>
+        <dd class="col-sm-9">@Model.CategoryId</dd>
+
+        <dt class="col-sm-3">Tên danh mục</dt>
+        <dd class="col-sm-9">@Model.CategoryName</dd>
+
+        <dt class="col-sm-3">Danh mục cha</dt>
+        <dd class="col-sm-9">
+            @(Model.Parent == null
+                ? "Danh mục gốc"
+                : Model.Parent.CategoryName)
+        </dd>
+
+        <dt class="col-sm-3">Slug</dt>
+        <dd class="col-sm-9">@Model.Slug</dd>
+
+        <dt class="col-sm-3">Mô tả</dt>
+        <dd class="col-sm-9">
+            @(string.IsNullOrWhiteSpace(Model.Description)
+                ? "Chưa cập nhật"
+                : Model.Description)
+        </dd>
+
+        <dt class="col-sm-3">Tiêu đề SEO</dt>
+        <dd class="col-sm-9">
+            @(string.IsNullOrWhiteSpace(Model.SeoTitle)
+                ? "Chưa cập nhật"
+                : Model.SeoTitle)
+        </dd>
+
+        <dt class="col-sm-3">Mô tả SEO</dt>
+        <dd class="col-sm-9">
+            @(string.IsNullOrWhiteSpace(Model.SeoDescription)
+                ? "Chưa cập nhật"
+                : Model.SeoDescription)
+        </dd>
+
+        <dt class="col-sm-3">Trạng thái</dt>
+        <dd class="col-sm-9">@Model.Status</dd>
+
+        <dt class="col-sm-3">Thứ tự hiển thị</dt>
+        <dd class="col-sm-9">@Model.SortOrder</dd>
+    </dl>
+
+    <a asp-action="Edit"
+       asp-route-id="@Model.CategoryId"
+       class="btn btn-warning">
+        Sửa
+    </a>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        Quay lại
+    </a>
+</div>

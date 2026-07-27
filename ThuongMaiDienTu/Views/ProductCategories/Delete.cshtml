@@ -1,0 +1,47 @@
+@model ThuongMaiDienTu.Models.ProductCategory
+
+@{
+    ViewData["Title"] = "Xóa danh mục";
+}
+
+<div class="container mt-4">
+    <h1>Xóa danh mục</h1>
+
+    <div class="alert alert-warning">
+        Bạn có chắc chắn muốn xóa danh mục này không?
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Tên danh mục</dt>
+        <dd class="col-sm-9">@Model.CategoryName</dd>
+
+        <dt class="col-sm-3">Danh mục cha</dt>
+        <dd class="col-sm-9">
+            @(Model.Parent == null
+                ? "Danh mục gốc"
+                : Model.Parent.CategoryName)
+        </dd>
+
+        <dt class="col-sm-3">Slug</dt>
+        <dd class="col-sm-9">@Model.Slug</dd>
+
+        <dt class="col-sm-3">Trạng thái</dt>
+        <dd class="col-sm-9">@Model.Status</dd>
+    </dl>
+
+    <form asp-action="Delete"
+          asp-route-id="@Model.CategoryId"
+          method="post">
+
+        <input type="hidden" asp-for="CategoryId" />
+
+        <button type="submit" class="btn btn-danger">
+            Xác nhận xóa
+        </button>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+            Hủy
+        </a>
+    </form>
+</div>

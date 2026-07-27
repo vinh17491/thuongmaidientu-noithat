@@ -1,0 +1,130 @@
+@model OrderDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Quản lý đơn {Model.OrderCode}";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1">Đơn hàng @Model.OrderCode</h1>
+        <p class="text-muted mb-0">Đặt lúc @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Quay lại danh sách</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <section class="card shadow-sm mb-4">
+            <div class="card-header fw-semibold">Sản phẩm</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Đơn giá khóa</th>
+                            <th>Số lượng</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@item.ProductName</div>
+                                    <div class="small text-muted">SKU: @item.SkuCode</div>
+                                </td>
+                                <td>@item.UnitPrice.ToString("N0") đ</td>
+                                <td>@item.Quantity</td>
+                                <td class="text-end fw-semibold">@item.LineTotal.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card shadow-sm">
+            <div class="card-header fw-semibold">Khách hàng và người nhận</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <div class="small text-muted">Tài khoản đặt</div>
+                    <div class="fw-semibold">@Model.CustomerName</div>
+                    <div>@Model.CustomerEmail</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="small text-muted">Người nhận</div>
+                    <div class="fw-semibold">@Model.ReceiverName</div>
+                    <div>@Model.ReceiverPhone</div>
+                    <div>@Model.ShippingAddress</div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Note))
+                    {
+                        <div class="small text-muted mt-2">Ghi chú: @Model.Note</div>
+                    }
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-4">
+        <section class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Trạng thái và thanh toán</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge @OrderWorkflowHelper.StatusBadgeClass(Model.Status)">
+                        @OrderWorkflowHelper.OrderStatusLabel(Model.Status)
+                    </span>
+                </div>
+                <div>@OrderWorkflowHelper.PaymentMethodLabel(Model.PaymentMethod)</div>
+                <div class="text-muted">@OrderWorkflowHelper.PaymentStatusLabel(Model.PaymentStatus)</div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Tổng tiền</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between"><span>Tạm tính</span><span>@Model.Subtotal.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between"><span>Giảm giá</span><span>@Model.DiscountAmount.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between"><span>Phí vận chuyển</span><span>@Model.ShippingFee.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5">
+                    <strong>Tổng cộng</strong>
+                    <strong class="text-danger">@Model.TotalAmount.ToString("N0") đ</strong>
+                </div>
+            </div>
+        </section>
+
+        @if (Model.AllowedNextStatuses.Count > 0)
+        {
+            <section class="card shadow-sm">
+                <div class="card-header fw-semibold">Cập nhật trạng thái</div>
+                <div class="card-body">
+                    <form asp-action="UpdateStatus" asp-route-id="@Model.OrderId" method="post">
+                        <input type="hidden" name="OrderId" value="@Model.OrderId" />
+                        <label for="NewStatus" class="form-label">Trạng thái tiếp theo</label>
+                        <select id="NewStatus" name="NewStatus" class="form-select mb-3" required>
+                            <option value="">-- Chọn trạng thái --</option>
+                            @foreach (var status in Model.AllowedNextStatuses)
+                            {
+                                <option value="@status">@OrderWorkflowHelper.OrderStatusLabel(status)</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-primary w-100">Cập nhật</button>
+                    </form>
+                </div>
+            </section>
+        }
+        else
+        {
+            <div class="alert alert-secondary mb-0">Đơn hàng đã ở trạng thái kết thúc.</div>
+        }
+    </div>
+</div>

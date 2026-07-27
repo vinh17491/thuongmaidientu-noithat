@@ -1,0 +1,103 @@
+@model IReadOnlyList<ReviewAdminListItemViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý đánh giá";
+    var selectedStatus = ViewBag.Status as string;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1">Quản lý đánh giá</h1>
+        <p class="text-muted mb-0">Ẩn hoặc hiển thị phản hồi của khách hàng.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-sm-5 col-md-4">
+        <label for="status" class="form-label">Trạng thái</label>
+        <select id="status" name="status" class="form-select">
+            <option value="">Tất cả</option>
+            <option value="VISIBLE" selected="@(selectedStatus == "VISIBLE")">Đang hiển thị</option>
+            <option value="HIDDEN" selected="@(selectedStatus == "HIDDEN")">Đã ẩn</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Lọc</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Xóa lọc</a>
+    </div>
+</form>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-info">Không có đánh giá phù hợp.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Khách hàng</th>
+                    <th>Sản phẩm / đơn</th>
+                    <th>Đánh giá</th>
+                    <th>Nội dung</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var review in Model)
+                {
+                    <tr>
+                        <td>@review.CustomerName</td>
+                        <td>
+                            <div class="fw-semibold">@review.ProductName</div>
+                            <div class="small text-muted">
+                                @(review.OrderCode is null
+                                    ? "Không gắn đơn"
+                                    : $"{review.OrderCode} · OrderItem #{review.OrderItemId}")
+                            </div>
+                        </td>
+                        <td class="text-warning text-nowrap">
+                            @for (var star = 1; star <= 5; star++)
+                            {
+                                <span>@(star <= review.Rating ? "★" : "☆")</span>
+                            }
+                        </td>
+                        <td style="min-width: 220px;">@(review.Comment ?? "Không có nội dung")</td>
+                        <td>
+                            @if (review.Status == "VISIBLE")
+                            {
+                                <span class="badge bg-success">Đang hiển thị</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Đã ẩn</span>
+                            }
+                        </td>
+                        <td>@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-end">
+                            <form asp-action="ToggleStatus" asp-route-id="@review.ReviewId" method="post">
+                                <input type="hidden" name="statusFilter" value="@selectedStatus" />
+                                <button type="submit"
+                                        class="btn btn-sm @(review.Status == "VISIBLE" ? "btn-outline-danger" : "btn-outline-success")">
+                                    @(review.Status == "VISIBLE" ? "Ẩn" : "Hiện")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

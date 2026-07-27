@@ -1,0 +1,109 @@
+@model IEnumerable<ThuongMaiDienTu.Models.ProductCategory>
+
+@{
+    ViewData["Title"] = "Quản lý danh mục";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1>Quản lý danh mục</h1>
+            <p class="text-muted mb-0">
+                Quản lý danh mục sản phẩm đồ gia dụng.
+            </p>
+        </div>
+
+        <a asp-action="Create" class="btn btn-primary">
+            Thêm danh mục
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-warning">
+            Chưa có danh mục nào.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã</th>
+                        <th>Tên danh mục</th>
+                        <th>Danh mục cha</th>
+                        <th>Slug</th>
+                        <th>Trạng thái</th>
+                        <th>Thứ tự</th>
+                        <th style="width: 220px;">Thao tác</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.CategoryId</td>
+                            <td>@item.CategoryName</td>
+                            <td>
+                                @(item.Parent == null
+                                    ? "Danh mục gốc"
+                                    : item.Parent.CategoryName)
+                            </td>
+                            <td>@item.Slug</td>
+                            <td>
+                                @if (item.Status == "ACTIVE")
+                                {
+                                    <span class="badge bg-success">
+                                        Hoạt động
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        Ngừng hoạt động
+                                    </span>
+                                }
+                            </td>
+                            <td>@item.SortOrder</td>
+                            <td>
+                                <a asp-action="Edit"
+                                   asp-route-id="@item.CategoryId"
+                                   class="btn btn-sm btn-warning">
+                                    Sửa
+                                </a>
+
+                                <a asp-action="Details"
+                                   asp-route-id="@item.CategoryId"
+                                   class="btn btn-sm btn-info">
+                                    Chi tiết
+                                </a>
+
+                                <a asp-action="Delete"
+                                   asp-route-id="@item.CategoryId"
+                                   class="btn btn-sm btn-danger">
+                                    Xóa
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

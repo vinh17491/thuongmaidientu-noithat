@@ -1,0 +1,37 @@
+@model OrderListItemViewModel
+
+@{
+    ViewData["Title"] = "Đặt hàng thành công";
+}
+
+<div class="card shadow-sm mx-auto" style="max-width: 720px;">
+    <div class="card-body text-center p-4 p-md-5">
+        <div class="display-5 text-success mb-3">✓</div>
+        <h1 class="h2">Đặt hàng thành công</h1>
+        <p class="text-muted">Đơn hàng đã được ghi nhận và đang chờ xác nhận.</p>
+
+        <dl class="row text-start border rounded p-3 my-4">
+            <dt class="col-sm-5">Mã đơn</dt>
+            <dd class="col-sm-7"><strong>@Model.OrderCode</strong></dd>
+            <dt class="col-sm-5">Thời gian</dt>
+            <dd class="col-sm-7">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+            <dt class="col-sm-5">Tổng tiền</dt>
+            <dd class="col-sm-7 text-danger fw-semibold">@Model.TotalAmount.ToString("N0") đ</dd>
+            <dt class="col-sm-5">Thanh toán</dt>
+            <dd class="col-sm-7">@OrderWorkflowHelper.PaymentMethodLabel(Model.PaymentMethod)</dd>
+            <dt class="col-sm-5">Trạng thái</dt>
+            <dd class="col-sm-7">
+                <span class="badge @OrderWorkflowHelper.StatusBadgeClass(Model.Status)">
+                    @OrderWorkflowHelper.OrderStatusLabel(Model.Status)
+                </span>
+            </dd>
+        </dl>
+
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId"
+               class="btn btn-primary">Xem chi tiết đơn</a>
+            <a asp-controller="Products" asp-action="Index"
+               class="btn btn-outline-primary">Tiếp tục mua hàng</a>
+        </div>
+    </div>
+</div>

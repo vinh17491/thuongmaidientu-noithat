@@ -1,0 +1,119 @@
+@model OrderDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Đơn hàng {Model.OrderCode}";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1">Đơn hàng @Model.OrderCode</h1>
+        <p class="text-muted mb-0">Đặt lúc @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Quay lại lịch sử</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <section class="card shadow-sm">
+            <div class="card-header fw-semibold">Sản phẩm đã đặt</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Đơn giá</th>
+                            <th>Số lượng</th>
+                            <th>Đánh giá</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@item.ProductName</div>
+                                    <div class="small text-muted">SKU: @item.SkuCode</div>
+                                </td>
+                                <td>@item.UnitPrice.ToString("N0") đ</td>
+                                <td>@item.Quantity</td>
+                                <td>
+                                    @if (item.CanReview)
+                                    {
+                                        <a asp-controller="Reviews" asp-action="Create"
+                                           asp-route-orderItemId="@item.OrderItemId"
+                                           class="btn btn-sm btn-outline-warning">Đánh giá</a>
+                                    }
+                                    else if (item.IsReviewed)
+                                    {
+                                        <span class="badge bg-success">
+                                            Đã đánh giá @item.ReviewRating/5
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Chưa đủ điều kiện</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-semibold">@item.LineTotal.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-4">
+        <section class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Thông tin đơn</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="badge @OrderWorkflowHelper.StatusBadgeClass(Model.Status)">
+                        @OrderWorkflowHelper.OrderStatusLabel(Model.Status)
+                    </span>
+                </div>
+                <div class="small text-muted">Thanh toán</div>
+                <div>@OrderWorkflowHelper.PaymentMethodLabel(Model.PaymentMethod)</div>
+                <div class="mb-3">@OrderWorkflowHelper.PaymentStatusLabel(Model.PaymentStatus)</div>
+                <div class="d-flex justify-content-between"><span>Tạm tính</span><span>@Model.Subtotal.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between"><span>Giảm giá</span><span>@Model.DiscountAmount.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between"><span>Phí vận chuyển</span><span>@Model.ShippingFee.ToString("N0") đ</span></div>
+                <div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5">
+                    <strong>Tổng cộng</strong>
+                    <strong class="text-danger">@Model.TotalAmount.ToString("N0") đ</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Người nhận</div>
+            <div class="card-body">
+                <div class="fw-semibold">@Model.ReceiverName</div>
+                <div>@Model.ReceiverPhone</div>
+                <div>@Model.ShippingAddress</div>
+                @if (!string.IsNullOrWhiteSpace(Model.Note))
+                {
+                    <div class="small text-muted mt-2">Ghi chú: @Model.Note</div>
+                }
+            </div>
+        </section>
+
+        @if (Model.CanCancel)
+        {
+            <form asp-action="Cancel" asp-route-id="@Model.OrderId" method="post"
+                  onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
+                <button type="submit" class="btn btn-outline-danger w-100">Hủy đơn hàng</button>
+            </form>
+        }
+    </div>
+</div>

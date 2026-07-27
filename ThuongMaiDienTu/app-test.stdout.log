@@ -1,0 +1,746 @@
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (25ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[role] IN ('ADMIN', 'SELLER')
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5215
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\bai\TMĐT\TH\Project TH\ThuongMaiDienTu\ThuongMaiDienTu
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (81ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE'
+      ORDER BY [p0].[created_at] DESC, [p0].[product_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_name], CONVERT(varchar(20), [p].[category_id])
+      FROM [product_categories] AS [p]
+      WHERE [p].[status] = 'ACTIVE'
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (125ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE' AND [p].[product_id] = @__id_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[full_name] AS [CustomerName], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      WHERE [r].[product_id] = @__id_Value_0 AND [r].[status] = 'VISIBLE'
+      ORDER BY [r].[created_at] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[@__userId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_id] AS [OrderId], [o].[order_code] AS [OrderCode], [o].[created_at] AS [CreatedAt], [o].[order_status] AS [Status], [o].[payment_method] AS [PaymentMethod], [o].[payment_status] AS [PaymentStatus], [o].[total_amount] AS [TotalAmount], (
+          SELECT COALESCE(SUM([o0].[quantity]), 0)
+          FROM [order_items] AS [o0]
+          WHERE [o].[order_id] = [o0].[order_id]) AS [TotalQuantity]
+      FROM [orders] AS [o]
+      WHERE [o].[user_id] = @__userId_0
+      ORDER BY [o].[created_at] DESC, [o].[order_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (39ms) [Parameters=[@__orderId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[order_id], [t].[order_code], [t].[created_at], [t].[receiver_name], [t].[receiver_phone], [t].[shipping_address], [t].[note], [t].[order_status], [t].[payment_method], [t].[payment_status], [t].[subtotal], [t].[discount_amount], [t].[shipping_fee], [t].[total_amount], [t].[c], [t0].[OrderItemId], [t0].[SkuId], [t0].[ProductId], [t0].[ProductName], [t0].[SkuCode], [t0].[UnitPrice], [t0].[Quantity], [t0].[LineTotal], [t0].[IsReviewed], [t0].[CanReview], [t0].[ReviewRating], [t0].[sku_id]
+      FROM (
+          SELECT TOP(2) [o].[order_id], [o].[order_code], [o].[created_at], [o].[receiver_name], [o].[receiver_phone], [o].[shipping_address], [o].[note], [o].[order_status], [o].[payment_method], [o].[payment_status], [o].[subtotal], [o].[discount_amount], [o].[shipping_fee], [o].[total_amount], CASE
+              WHEN [o].[order_status] = 'PENDING' THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [c]
+          FROM [orders] AS [o]
+          WHERE [o].[order_id] = @__orderId_0 AND [o].[user_id] = @__userId_1
+      ) AS [t]
+      OUTER APPLY (
+          SELECT [o0].[order_item_id] AS [OrderItemId], [o0].[sku_id] AS [SkuId], [p].[product_id] AS [ProductId], [o0].[product_name] AS [ProductName], [o0].[sku_code] AS [SkuCode], [o0].[unit_price] AS [UnitPrice], [o0].[quantity] AS [Quantity], COALESCE([o0].[line_total], [o0].[unit_price] * CAST([o0].[quantity] AS decimal(18,2))) AS [LineTotal], CASE
+              WHEN EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r]
+                  WHERE [o0].[order_item_id] = [r].[order_item_id] AND [r].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [IsReviewed], CASE
+              WHEN [t].[order_status] = 'DELIVERED' AND NOT EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r0]
+                  WHERE [o0].[order_item_id] = [r0].[order_item_id] AND [r0].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [CanReview], (
+              SELECT TOP(1) [r1].[rating]
+              FROM [reviews] AS [r1]
+              WHERE [o0].[order_item_id] = [r1].[order_item_id] AND [r1].[user_id] = @__userId_1) AS [ReviewRating], [p].[sku_id]
+          FROM [order_items] AS [o0]
+          INNER JOIN [product_skus] AS [p] ON [o0].[sku_id] = [p].[sku_id]
+          WHERE [t].[order_id] = [o0].[order_id]
+      ) AS [t0]
+      ORDER BY [t].[order_id], [t0].[OrderItemId]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int64), @__orderItemId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [reviews] AS [r]
+              WHERE [r].[user_id] = @__userId_0 AND [r].[order_item_id] = @__orderItemId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int64), @__orderItemId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [reviews] AS [r]
+              WHERE [r].[user_id] = @__userId_0 AND [r].[order_item_id] = @__orderItemId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int64), @__orderItemId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [reviews] AS [r]
+              WHERE [r].[user_id] = @__userId_0 AND [r].[order_item_id] = @__orderItemId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[order_id], [t].[order_code], [t].[created_at], [t].[receiver_name], [t].[receiver_phone], [t].[shipping_address], [t].[note], [t].[order_status], [t].[payment_method], [t].[payment_status], [t].[subtotal], [t].[discount_amount], [t].[shipping_fee], [t].[total_amount], [t].[c], [t0].[OrderItemId], [t0].[SkuId], [t0].[ProductId], [t0].[ProductName], [t0].[SkuCode], [t0].[UnitPrice], [t0].[Quantity], [t0].[LineTotal], [t0].[IsReviewed], [t0].[CanReview], [t0].[ReviewRating], [t0].[sku_id]
+      FROM (
+          SELECT TOP(2) [o].[order_id], [o].[order_code], [o].[created_at], [o].[receiver_name], [o].[receiver_phone], [o].[shipping_address], [o].[note], [o].[order_status], [o].[payment_method], [o].[payment_status], [o].[subtotal], [o].[discount_amount], [o].[shipping_fee], [o].[total_amount], CASE
+              WHEN [o].[order_status] = 'PENDING' THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [c]
+          FROM [orders] AS [o]
+          WHERE [o].[order_id] = @__orderId_0 AND [o].[user_id] = @__userId_1
+      ) AS [t]
+      OUTER APPLY (
+          SELECT [o0].[order_item_id] AS [OrderItemId], [o0].[sku_id] AS [SkuId], [p].[product_id] AS [ProductId], [o0].[product_name] AS [ProductName], [o0].[sku_code] AS [SkuCode], [o0].[unit_price] AS [UnitPrice], [o0].[quantity] AS [Quantity], COALESCE([o0].[line_total], [o0].[unit_price] * CAST([o0].[quantity] AS decimal(18,2))) AS [LineTotal], CASE
+              WHEN EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r]
+                  WHERE [o0].[order_item_id] = [r].[order_item_id] AND [r].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [IsReviewed], CASE
+              WHEN [t].[order_status] = 'DELIVERED' AND NOT EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r0]
+                  WHERE [o0].[order_item_id] = [r0].[order_item_id] AND [r0].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [CanReview], (
+              SELECT TOP(1) [r1].[rating]
+              FROM [reviews] AS [r1]
+              WHERE [o0].[order_item_id] = [r1].[order_item_id] AND [r1].[user_id] = @__userId_1) AS [ReviewRating], [p].[sku_id]
+          FROM [order_items] AS [o0]
+          INNER JOIN [product_skus] AS [p] ON [o0].[sku_id] = [p].[sku_id]
+          WHERE [t].[order_id] = [o0].[order_id]
+      ) AS [t0]
+      ORDER BY [t].[order_id], [t0].[OrderItemId]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int64), @__orderItemId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [reviews] AS [r]
+              WHERE [r].[user_id] = @__userId_0 AND [r].[order_item_id] = @__orderItemId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[@p0='?' (Size = 1000), @p1='?' (DbType = DateTime2), @p2='?' (DbType = Int64), @p3='?' (DbType = Int64), @p4='?' (DbType = Int32), @p5='?' (Size = 20) (DbType = AnsiString), @p6='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [reviews] ([comment], [created_at], [order_item_id], [product_id], [rating], [status], [user_id])
+      OUTPUT INSERTED.[review_id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__orderId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[order_id], [t].[order_code], [t].[created_at], [t].[receiver_name], [t].[receiver_phone], [t].[shipping_address], [t].[note], [t].[order_status], [t].[payment_method], [t].[payment_status], [t].[subtotal], [t].[discount_amount], [t].[shipping_fee], [t].[total_amount], [t].[c], [t0].[OrderItemId], [t0].[SkuId], [t0].[ProductId], [t0].[ProductName], [t0].[SkuCode], [t0].[UnitPrice], [t0].[Quantity], [t0].[LineTotal], [t0].[IsReviewed], [t0].[CanReview], [t0].[ReviewRating], [t0].[sku_id]
+      FROM (
+          SELECT TOP(2) [o].[order_id], [o].[order_code], [o].[created_at], [o].[receiver_name], [o].[receiver_phone], [o].[shipping_address], [o].[note], [o].[order_status], [o].[payment_method], [o].[payment_status], [o].[subtotal], [o].[discount_amount], [o].[shipping_fee], [o].[total_amount], CASE
+              WHEN [o].[order_status] = 'PENDING' THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [c]
+          FROM [orders] AS [o]
+          WHERE [o].[order_id] = @__orderId_0 AND [o].[user_id] = @__userId_1
+      ) AS [t]
+      OUTER APPLY (
+          SELECT [o0].[order_item_id] AS [OrderItemId], [o0].[sku_id] AS [SkuId], [p].[product_id] AS [ProductId], [o0].[product_name] AS [ProductName], [o0].[sku_code] AS [SkuCode], [o0].[unit_price] AS [UnitPrice], [o0].[quantity] AS [Quantity], COALESCE([o0].[line_total], [o0].[unit_price] * CAST([o0].[quantity] AS decimal(18,2))) AS [LineTotal], CASE
+              WHEN EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r]
+                  WHERE [o0].[order_item_id] = [r].[order_item_id] AND [r].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [IsReviewed], CASE
+              WHEN [t].[order_status] = 'DELIVERED' AND NOT EXISTS (
+                  SELECT 1
+                  FROM [reviews] AS [r0]
+                  WHERE [o0].[order_item_id] = [r0].[order_item_id] AND [r0].[user_id] = @__userId_1) THEN CAST(1 AS bit)
+              ELSE CAST(0 AS bit)
+          END AS [CanReview], (
+              SELECT TOP(1) [r1].[rating]
+              FROM [reviews] AS [r1]
+              WHERE [o0].[order_item_id] = [r1].[order_item_id] AND [r1].[user_id] = @__userId_1) AS [ReviewRating], [p].[sku_id]
+          FROM [order_items] AS [o0]
+          INNER JOIN [product_skus] AS [p] ON [o0].[sku_id] = [p].[sku_id]
+          WHERE [t].[order_id] = [o0].[order_id]
+      ) AS [t0]
+      ORDER BY [t].[order_id], [t0].[OrderItemId]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__orderItemId_0='?' (DbType = Int64), @__userId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [o].[order_item_id], [o].[line_total], [o].[order_id], [o].[product_name], [o].[quantity], [o].[sku_code], [o].[sku_id], [o].[unit_price], [o0].[order_id], [o0].[created_at], [o0].[discount_amount], [o0].[note], [o0].[order_code], [o0].[order_status], [o0].[payment_method], [o0].[payment_status], [o0].[receiver_name], [o0].[receiver_phone], [o0].[shipping_address], [o0].[shipping_fee], [o0].[subtotal], [o0].[total_amount], [o0].[updated_at], [o0].[user_id], [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at]
+      FROM [order_items] AS [o]
+      INNER JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      INNER JOIN [product_skus] AS [p] ON [o].[sku_id] = [p].[sku_id]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [o].[order_item_id] = @__orderItemId_0 AND [o0].[user_id] = @__userId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int64), @__orderItemId_1='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [reviews] AS [r]
+              WHERE [r].[user_id] = @__userId_0 AND [r].[order_item_id] = @__orderItemId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE' AND [p].[product_id] = @__id_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[full_name] AS [CustomerName], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      WHERE [r].[product_id] = @__id_Value_0 AND [r].[status] = 'VISIBLE'
+      ORDER BY [r].[created_at] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (44ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE' AND [p].[product_id] = @__id_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[full_name] AS [CustomerName], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      WHERE [r].[product_id] = @__id_Value_0 AND [r].[status] = 'VISIBLE'
+      ORDER BY [r].[created_at] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[review_id] AS [ReviewId], [u].[full_name] AS [CustomerName], [p].[product_name] AS [ProductName], [r].[order_item_id] AS [OrderItemId], [o0].[order_code] AS [OrderCode], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[status] AS [Status], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      INNER JOIN [products] AS [p] ON [r].[product_id] = [p].[product_id]
+      LEFT JOIN [order_items] AS [o] ON [r].[order_item_id] = [o].[order_item_id]
+      LEFT JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      ORDER BY [r].[created_at] DESC, [r].[review_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__id_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [r].[review_id], [r].[comment], [r].[created_at], [r].[order_item_id], [r].[product_id], [r].[rating], [r].[status], [r].[user_id]
+      FROM [reviews] AS [r]
+      WHERE [r].[review_id] = @__id_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@p1='?' (DbType = Int64), @p0='?' (Size = 20) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [reviews] SET [status] = @p0
+      OUTPUT 1
+      WHERE [review_id] = @p1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[review_id] AS [ReviewId], [u].[full_name] AS [CustomerName], [p].[product_name] AS [ProductName], [r].[order_item_id] AS [OrderItemId], [o0].[order_code] AS [OrderCode], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[status] AS [Status], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      INNER JOIN [products] AS [p] ON [r].[product_id] = [p].[product_id]
+      LEFT JOIN [order_items] AS [o] ON [r].[order_item_id] = [o].[order_item_id]
+      LEFT JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      ORDER BY [r].[created_at] DESC, [r].[review_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_status] AS [Status], COUNT(*) AS [Count]
+      FROM [orders] AS [o]
+      GROUP BY [o].[order_status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [products] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [users] AS [u]
+      WHERE [u].[role] = 'CUSTOMER'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [orders] AS [o]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([o].[total_amount]), 0.0)
+      FROM [orders] AS [o]
+      WHERE [o].[order_status] = 'DELIVERED'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) [v].[sku_id] AS [SkuId], [v].[product_name] AS [ProductName], COALESCE([v].[total_quantity_sold], 0) AS [TotalQuantitySold], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_best_selling_products] AS [v]
+      ORDER BY [v].[total_quantity_sold] DESC, [v].[total_revenue] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) COALESCE([v].[revenue_year], 0) AS [Year], COALESCE([v].[revenue_month], 0) AS [Month], COALESCE([v].[total_orders], 0) AS [TotalOrders], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_revenue_by_month] AS [v]
+      ORDER BY [v].[revenue_year] DESC, [v].[revenue_month] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (24ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id] AS [ProductId], [p0].[product_name] AS [ProductName], [p].[sku_code] AS [SkuCode], [p].[stock_quantity] AS [StockQuantity]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p1].[sku_id])
+          FROM [product_skus] AS [p1]
+          WHERE [p1].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p].[stock_quantity] <= 5
+      ORDER BY [p].[stock_quantity], [p0].[product_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE' AND [p].[product_id] = @__id_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[full_name] AS [CustomerName], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      WHERE [r].[product_id] = @__id_Value_0 AND [r].[status] = 'VISIBLE'
+      ORDER BY [r].[created_at] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[@__status_0='?' (Size = 20) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[review_id] AS [ReviewId], [u].[full_name] AS [CustomerName], [p].[product_name] AS [ProductName], [r].[order_item_id] AS [OrderItemId], [o0].[order_code] AS [OrderCode], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[status] AS [Status], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      INNER JOIN [products] AS [p] ON [r].[product_id] = [p].[product_id]
+      LEFT JOIN [order_items] AS [o] ON [r].[order_item_id] = [o].[order_item_id]
+      LEFT JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      WHERE [r].[status] = @__status_0
+      ORDER BY [r].[created_at] DESC, [r].[review_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_status] AS [Status], COUNT(*) AS [Count]
+      FROM [orders] AS [o]
+      GROUP BY [o].[order_status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [products] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [users] AS [u]
+      WHERE [u].[role] = 'CUSTOMER'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [orders] AS [o]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([o].[total_amount]), 0.0)
+      FROM [orders] AS [o]
+      WHERE [o].[order_status] = 'DELIVERED'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) [v].[sku_id] AS [SkuId], [v].[product_name] AS [ProductName], COALESCE([v].[total_quantity_sold], 0) AS [TotalQuantitySold], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_best_selling_products] AS [v]
+      ORDER BY [v].[total_quantity_sold] DESC, [v].[total_revenue] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) COALESCE([v].[revenue_year], 0) AS [Year], COALESCE([v].[revenue_month], 0) AS [Month], COALESCE([v].[total_orders], 0) AS [TotalOrders], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_revenue_by_month] AS [v]
+      ORDER BY [v].[revenue_year] DESC, [v].[revenue_month] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id] AS [ProductId], [p0].[product_name] AS [ProductName], [p].[sku_code] AS [SkuCode], [p].[stock_quantity] AS [StockQuantity]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p1].[sku_id])
+          FROM [product_skus] AS [p1]
+          WHERE [p1].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p].[stock_quantity] <= 5
+      ORDER BY [p].[stock_quantity], [p0].[product_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (75ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE'
+      ORDER BY [p0].[created_at] DESC, [p0].[product_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_name], CONVERT(varchar(20), [p].[category_id])
+      FROM [product_categories] AS [p]
+      WHERE [p].[status] = 'ACTIVE'
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (25ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[sku_id], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status], [p0].[store_id], [p0].[updated_at], [p1].[category_id], [p1].[category_name], [p1].[description], [p1].[parent_id], [p1].[seo_description], [p1].[seo_title], [p1].[slug], [p1].[sort_order], [p1].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p3].[image_id], [p3].[alt_text], [p3].[image_url], [p3].[is_primary], [p3].[product_id], [p3].[sort_order]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+      INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p3] ON [p0].[product_id] = [p3].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p2].[sku_id])
+          FROM [product_skus] AS [p2]
+          WHERE [p2].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p1].[status] = 'ACTIVE' AND [s].[status] = 'ACTIVE' AND [p].[product_id] = @__id_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__id_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[full_name] AS [CustomerName], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      WHERE [r].[product_id] = @__id_Value_0 AND [r].[status] = 'VISIBLE'
+      ORDER BY [r].[created_at] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (58ms) [Parameters=[@__userId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[cart_id], [t].[created_at], [t].[updated_at], [t].[user_id], [t0].[cart_item_id], [t0].[added_at], [t0].[cart_id], [t0].[quantity], [t0].[sku_id], [t0].[sku_id0], [t0].[price], [t0].[product_id], [t0].[sale_end], [t0].[sale_price], [t0].[sale_start], [t0].[sku_code], [t0].[status], [t0].[stock_quantity], [t0].[product_id0], [t0].[brand], [t0].[category_id], [t0].[created_at], [t0].[description], [t0].[product_name], [t0].[seo_description], [t0].[seo_title], [t0].[short_description], [t0].[slug], [t0].[status0], [t0].[store_id], [t0].[updated_at], [t0].[category_id0], [t0].[category_name], [t0].[description0], [t0].[parent_id], [t0].[seo_description0], [t0].[seo_title0], [t0].[slug0], [t0].[sort_order], [t0].[status1], [t0].[store_id0], [t0].[created_at0], [t0].[description1], [t0].[owner_user_id], [t0].[seo_description1], [t0].[seo_title1], [t0].[slug1], [t0].[status2], [t0].[store_name], [t0].[image_id], [t0].[alt_text], [t0].[image_url], [t0].[is_primary], [t0].[product_id1], [t0].[sort_order0]
+      FROM (
+          SELECT TOP(2) [c].[cart_id], [c].[created_at], [c].[updated_at], [c].[user_id]
+          FROM [carts] AS [c]
+          WHERE [c].[user_id] = @__userId_0
+      ) AS [t]
+      LEFT JOIN (
+          SELECT [c0].[cart_item_id], [c0].[added_at], [c0].[cart_id], [c0].[quantity], [c0].[sku_id], [p].[sku_id] AS [sku_id0], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id] AS [product_id0], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status] AS [status0], [p0].[store_id], [p0].[updated_at], [p1].[category_id] AS [category_id0], [p1].[category_name], [p1].[description] AS [description0], [p1].[parent_id], [p1].[seo_description] AS [seo_description0], [p1].[seo_title] AS [seo_title0], [p1].[slug] AS [slug0], [p1].[sort_order], [p1].[status] AS [status1], [s].[store_id] AS [store_id0], [s].[created_at] AS [created_at0], [s].[description] AS [description1], [s].[owner_user_id], [s].[seo_description] AS [seo_description1], [s].[seo_title] AS [seo_title1], [s].[slug] AS [slug1], [s].[status] AS [status2], [s].[store_name], [p2].[image_id], [p2].[alt_text], [p2].[image_url], [p2].[is_primary], [p2].[product_id] AS [product_id1], [p2].[sort_order] AS [sort_order0]
+          FROM [cart_items] AS [c0]
+          INNER JOIN [product_skus] AS [p] ON [c0].[sku_id] = [p].[sku_id]
+          INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+          INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+          INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+          LEFT JOIN [product_images] AS [p2] ON [p0].[product_id] = [p2].[product_id]
+      ) AS [t0] ON [t].[cart_id] = [t0].[cart_id]
+      ORDER BY [t].[cart_id], [t0].[cart_item_id], [t0].[sku_id0], [t0].[product_id0], [t0].[category_id0], [t0].[store_id0]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (45ms) [Parameters=[@__userId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[cart_id], [t].[created_at], [t].[updated_at], [t].[user_id], [t0].[cart_item_id], [t0].[added_at], [t0].[cart_id], [t0].[quantity], [t0].[sku_id], [t0].[sku_id0], [t0].[price], [t0].[product_id], [t0].[sale_end], [t0].[sale_price], [t0].[sale_start], [t0].[sku_code], [t0].[status], [t0].[stock_quantity], [t0].[product_id0], [t0].[brand], [t0].[category_id], [t0].[created_at], [t0].[description], [t0].[product_name], [t0].[seo_description], [t0].[seo_title], [t0].[short_description], [t0].[slug], [t0].[status0], [t0].[store_id], [t0].[updated_at], [t0].[category_id0], [t0].[category_name], [t0].[description0], [t0].[parent_id], [t0].[seo_description0], [t0].[seo_title0], [t0].[slug0], [t0].[sort_order], [t0].[status1], [t0].[store_id0], [t0].[created_at0], [t0].[description1], [t0].[owner_user_id], [t0].[seo_description1], [t0].[seo_title1], [t0].[slug1], [t0].[status2], [t0].[store_name]
+      FROM (
+          SELECT TOP(2) [c].[cart_id], [c].[created_at], [c].[updated_at], [c].[user_id]
+          FROM [carts] AS [c]
+          WHERE [c].[user_id] = @__userId_0
+      ) AS [t]
+      LEFT JOIN (
+          SELECT [c0].[cart_item_id], [c0].[added_at], [c0].[cart_id], [c0].[quantity], [c0].[sku_id], [p].[sku_id] AS [sku_id0], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id] AS [product_id0], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status] AS [status0], [p0].[store_id], [p0].[updated_at], [p1].[category_id] AS [category_id0], [p1].[category_name], [p1].[description] AS [description0], [p1].[parent_id], [p1].[seo_description] AS [seo_description0], [p1].[seo_title] AS [seo_title0], [p1].[slug] AS [slug0], [p1].[sort_order], [p1].[status] AS [status1], [s].[store_id] AS [store_id0], [s].[created_at] AS [created_at0], [s].[description] AS [description1], [s].[owner_user_id], [s].[seo_description] AS [seo_description1], [s].[seo_title] AS [seo_title1], [s].[slug] AS [slug1], [s].[status] AS [status2], [s].[store_name]
+          FROM [cart_items] AS [c0]
+          INNER JOIN [product_skus] AS [p] ON [c0].[sku_id] = [p].[sku_id]
+          INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+          INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+          INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+      ) AS [t0] ON [t].[cart_id] = [t0].[cart_id]
+      ORDER BY [t].[cart_id], [t0].[cart_item_id], [t0].[sku_id0], [t0].[product_id0], [t0].[category_id0]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[cart_id], [t].[created_at], [t].[updated_at], [t].[user_id], [t0].[cart_item_id], [t0].[added_at], [t0].[cart_id], [t0].[quantity], [t0].[sku_id], [t0].[sku_id0], [t0].[price], [t0].[product_id], [t0].[sale_end], [t0].[sale_price], [t0].[sale_start], [t0].[sku_code], [t0].[status], [t0].[stock_quantity], [t0].[product_id0], [t0].[brand], [t0].[category_id], [t0].[created_at], [t0].[description], [t0].[product_name], [t0].[seo_description], [t0].[seo_title], [t0].[short_description], [t0].[slug], [t0].[status0], [t0].[store_id], [t0].[updated_at], [t0].[category_id0], [t0].[category_name], [t0].[description0], [t0].[parent_id], [t0].[seo_description0], [t0].[seo_title0], [t0].[slug0], [t0].[sort_order], [t0].[status1], [t0].[store_id0], [t0].[created_at0], [t0].[description1], [t0].[owner_user_id], [t0].[seo_description1], [t0].[seo_title1], [t0].[slug1], [t0].[status2], [t0].[store_name], [t0].[image_id], [t0].[alt_text], [t0].[image_url], [t0].[is_primary], [t0].[product_id1], [t0].[sort_order0]
+      FROM (
+          SELECT TOP(2) [c].[cart_id], [c].[created_at], [c].[updated_at], [c].[user_id]
+          FROM [carts] AS [c]
+          WHERE [c].[user_id] = @__userId_0
+      ) AS [t]
+      LEFT JOIN (
+          SELECT [c0].[cart_item_id], [c0].[added_at], [c0].[cart_id], [c0].[quantity], [c0].[sku_id], [p].[sku_id] AS [sku_id0], [p].[price], [p].[product_id], [p].[sale_end], [p].[sale_price], [p].[sale_start], [p].[sku_code], [p].[status], [p].[stock_quantity], [p0].[product_id] AS [product_id0], [p0].[brand], [p0].[category_id], [p0].[created_at], [p0].[description], [p0].[product_name], [p0].[seo_description], [p0].[seo_title], [p0].[short_description], [p0].[slug], [p0].[status] AS [status0], [p0].[store_id], [p0].[updated_at], [p1].[category_id] AS [category_id0], [p1].[category_name], [p1].[description] AS [description0], [p1].[parent_id], [p1].[seo_description] AS [seo_description0], [p1].[seo_title] AS [seo_title0], [p1].[slug] AS [slug0], [p1].[sort_order], [p1].[status] AS [status1], [s].[store_id] AS [store_id0], [s].[created_at] AS [created_at0], [s].[description] AS [description1], [s].[owner_user_id], [s].[seo_description] AS [seo_description1], [s].[seo_title] AS [seo_title1], [s].[slug] AS [slug1], [s].[status] AS [status2], [s].[store_name], [p2].[image_id], [p2].[alt_text], [p2].[image_url], [p2].[is_primary], [p2].[product_id] AS [product_id1], [p2].[sort_order] AS [sort_order0]
+          FROM [cart_items] AS [c0]
+          INNER JOIN [product_skus] AS [p] ON [c0].[sku_id] = [p].[sku_id]
+          INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+          INNER JOIN [product_categories] AS [p1] ON [p0].[category_id] = [p1].[category_id]
+          INNER JOIN [stores] AS [s] ON [p0].[store_id] = [s].[store_id]
+          LEFT JOIN [product_images] AS [p2] ON [p0].[product_id] = [p2].[product_id]
+      ) AS [t0] ON [t].[cart_id] = [t0].[cart_id]
+      ORDER BY [t].[cart_id], [t0].[cart_item_id], [t0].[sku_id0], [t0].[product_id0], [t0].[category_id0], [t0].[store_id0]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[@__userId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_id] AS [OrderId], [o].[order_code] AS [OrderCode], [o].[created_at] AS [CreatedAt], [o].[order_status] AS [Status], [o].[payment_method] AS [PaymentMethod], [o].[payment_status] AS [PaymentStatus], [o].[total_amount] AS [TotalAmount], (
+          SELECT COALESCE(SUM([o0].[quantity]), 0)
+          FROM [order_items] AS [o0]
+          WHERE [o].[order_id] = [o0].[order_id]) AS [TotalQuantity]
+      FROM [orders] AS [o]
+      WHERE [o].[user_id] = @__userId_0
+      ORDER BY [o].[created_at] DESC, [o].[order_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id], [p].[brand], [p].[category_id], [p].[created_at], [p].[description], [p].[product_name], [p].[seo_description], [p].[seo_title], [p].[short_description], [p].[slug], [p].[status], [p].[store_id], [p].[updated_at], [p0].[category_id], [p0].[category_name], [p0].[description], [p0].[parent_id], [p0].[seo_description], [p0].[seo_title], [p0].[slug], [p0].[sort_order], [p0].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p1].[image_id], [p2].[sku_id], [p2].[price], [p2].[product_id], [p2].[sale_end], [p2].[sale_price], [p2].[sale_start], [p2].[sku_code], [p2].[status], [p2].[stock_quantity], [p1].[alt_text], [p1].[image_url], [p1].[is_primary], [p1].[product_id], [p1].[sort_order]
+      FROM [products] AS [p]
+      INNER JOIN [product_categories] AS [p0] ON [p].[category_id] = [p0].[category_id]
+      INNER JOIN [stores] AS [s] ON [p].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p1] ON [p].[product_id] = [p1].[product_id]
+      LEFT JOIN [product_skus] AS [p2] ON [p].[product_id] = [p2].[product_id]
+      ORDER BY [p].[created_at] DESC, [p].[product_name], [p].[product_id], [p0].[category_id], [s].[store_id], [p1].[image_id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_name], CONVERT(varchar(20), [p].[category_id])
+      FROM [product_categories] AS [p]
+      WHERE [p].[status] = 'ACTIVE'
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_id], [p].[category_name], [p].[description], [p].[parent_id], [p].[seo_description], [p].[seo_title], [p].[slug], [p].[sort_order], [p].[status], [p0].[category_id], [p0].[category_name], [p0].[description], [p0].[parent_id], [p0].[seo_description], [p0].[seo_title], [p0].[slug], [p0].[sort_order], [p0].[status]
+      FROM [product_categories] AS [p]
+      LEFT JOIN [product_categories] AS [p0] ON [p].[parent_id] = [p0].[category_id]
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_id] AS [OrderId], [o].[order_code] AS [OrderCode], [o].[created_at] AS [CreatedAt], [o].[order_status] AS [Status], [o].[payment_method] AS [PaymentMethod], [o].[payment_status] AS [PaymentStatus], [o].[total_amount] AS [TotalAmount], (
+          SELECT COALESCE(SUM([o0].[quantity]), 0)
+          FROM [order_items] AS [o0]
+          WHERE [o].[order_id] = [o0].[order_id]) AS [TotalQuantity], [u].[full_name] AS [CustomerName]
+      FROM [orders] AS [o]
+      INNER JOIN [users] AS [u] ON [o].[user_id] = [u].[user_id]
+      ORDER BY [o].[created_at] DESC, [o].[order_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[review_id] AS [ReviewId], [u].[full_name] AS [CustomerName], [p].[product_name] AS [ProductName], [r].[order_item_id] AS [OrderItemId], [o0].[order_code] AS [OrderCode], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[status] AS [Status], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      INNER JOIN [products] AS [p] ON [r].[product_id] = [p].[product_id]
+      LEFT JOIN [order_items] AS [o] ON [r].[order_item_id] = [o].[order_item_id]
+      LEFT JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      ORDER BY [r].[created_at] DESC, [r].[review_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_status] AS [Status], COUNT(*) AS [Count]
+      FROM [orders] AS [o]
+      GROUP BY [o].[order_status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [products] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [users] AS [u]
+      WHERE [u].[role] = 'CUSTOMER'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [orders] AS [o]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([o].[total_amount]), 0.0)
+      FROM [orders] AS [o]
+      WHERE [o].[order_status] = 'DELIVERED'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) [v].[sku_id] AS [SkuId], [v].[product_name] AS [ProductName], COALESCE([v].[total_quantity_sold], 0) AS [TotalQuantitySold], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_best_selling_products] AS [v]
+      ORDER BY [v].[total_quantity_sold] DESC, [v].[total_revenue] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) COALESCE([v].[revenue_year], 0) AS [Year], COALESCE([v].[revenue_month], 0) AS [Month], COALESCE([v].[total_orders], 0) AS [TotalOrders], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_revenue_by_month] AS [v]
+      ORDER BY [v].[revenue_year] DESC, [v].[revenue_month] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (20ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id] AS [ProductId], [p0].[product_name] AS [ProductName], [p].[sku_code] AS [SkuCode], [p].[stock_quantity] AS [StockQuantity]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p1].[sku_id])
+          FROM [product_skus] AS [p1]
+          WHERE [p1].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p].[stock_quantity] <= 5
+      ORDER BY [p].[stock_quantity], [p0].[product_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__model_Email_0='?' (Size = 150) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[user_id], [u].[created_at], [u].[email], [u].[full_name], [u].[password_hash], [u].[phone], [u].[role], [u].[status], [u].[updated_at]
+      FROM [users] AS [u]
+      WHERE [u].[email] = @__model_Email_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id], [p].[brand], [p].[category_id], [p].[created_at], [p].[description], [p].[product_name], [p].[seo_description], [p].[seo_title], [p].[short_description], [p].[slug], [p].[status], [p].[store_id], [p].[updated_at], [p0].[category_id], [p0].[category_name], [p0].[description], [p0].[parent_id], [p0].[seo_description], [p0].[seo_title], [p0].[slug], [p0].[sort_order], [p0].[status], [s].[store_id], [s].[created_at], [s].[description], [s].[owner_user_id], [s].[seo_description], [s].[seo_title], [s].[slug], [s].[status], [s].[store_name], [p1].[image_id], [p2].[sku_id], [p2].[price], [p2].[product_id], [p2].[sale_end], [p2].[sale_price], [p2].[sale_start], [p2].[sku_code], [p2].[status], [p2].[stock_quantity], [p1].[alt_text], [p1].[image_url], [p1].[is_primary], [p1].[product_id], [p1].[sort_order]
+      FROM [products] AS [p]
+      INNER JOIN [product_categories] AS [p0] ON [p].[category_id] = [p0].[category_id]
+      INNER JOIN [stores] AS [s] ON [p].[store_id] = [s].[store_id]
+      LEFT JOIN [product_images] AS [p1] ON [p].[product_id] = [p1].[product_id]
+      LEFT JOIN [product_skus] AS [p2] ON [p].[product_id] = [p2].[product_id]
+      ORDER BY [p].[created_at] DESC, [p].[product_name], [p].[product_id], [p0].[category_id], [s].[store_id], [p1].[image_id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_name], CONVERT(varchar(20), [p].[category_id])
+      FROM [product_categories] AS [p]
+      WHERE [p].[status] = 'ACTIVE'
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[category_id], [p].[category_name], [p].[description], [p].[parent_id], [p].[seo_description], [p].[seo_title], [p].[slug], [p].[sort_order], [p].[status], [p0].[category_id], [p0].[category_name], [p0].[description], [p0].[parent_id], [p0].[seo_description], [p0].[seo_title], [p0].[slug], [p0].[sort_order], [p0].[status]
+      FROM [product_categories] AS [p]
+      LEFT JOIN [product_categories] AS [p0] ON [p].[parent_id] = [p0].[category_id]
+      ORDER BY [p].[sort_order], [p].[category_name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_id] AS [OrderId], [o].[order_code] AS [OrderCode], [o].[created_at] AS [CreatedAt], [o].[order_status] AS [Status], [o].[payment_method] AS [PaymentMethod], [o].[payment_status] AS [PaymentStatus], [o].[total_amount] AS [TotalAmount], (
+          SELECT COALESCE(SUM([o0].[quantity]), 0)
+          FROM [order_items] AS [o0]
+          WHERE [o].[order_id] = [o0].[order_id]) AS [TotalQuantity], [u].[full_name] AS [CustomerName]
+      FROM [orders] AS [o]
+      INNER JOIN [users] AS [u] ON [o].[user_id] = [u].[user_id]
+      ORDER BY [o].[created_at] DESC, [o].[order_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [r].[review_id] AS [ReviewId], [u].[full_name] AS [CustomerName], [p].[product_name] AS [ProductName], [r].[order_item_id] AS [OrderItemId], [o0].[order_code] AS [OrderCode], [r].[rating] AS [Rating], [r].[comment] AS [Comment], [r].[status] AS [Status], [r].[created_at] AS [CreatedAt]
+      FROM [reviews] AS [r]
+      INNER JOIN [users] AS [u] ON [r].[user_id] = [u].[user_id]
+      INNER JOIN [products] AS [p] ON [r].[product_id] = [p].[product_id]
+      LEFT JOIN [order_items] AS [o] ON [r].[order_item_id] = [o].[order_item_id]
+      LEFT JOIN [orders] AS [o0] ON [o].[order_id] = [o0].[order_id]
+      ORDER BY [r].[created_at] DESC, [r].[review_id] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[order_status] AS [Status], COUNT(*) AS [Count]
+      FROM [orders] AS [o]
+      GROUP BY [o].[order_status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [products] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [users] AS [u]
+      WHERE [u].[role] = 'CUSTOMER'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [orders] AS [o]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([o].[total_amount]), 0.0)
+      FROM [orders] AS [o]
+      WHERE [o].[order_status] = 'DELIVERED'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) [v].[sku_id] AS [SkuId], [v].[product_name] AS [ProductName], COALESCE([v].[total_quantity_sold], 0) AS [TotalQuantitySold], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_best_selling_products] AS [v]
+      ORDER BY [v].[total_quantity_sold] DESC, [v].[total_revenue] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_0) COALESCE([v].[revenue_year], 0) AS [Year], COALESCE([v].[revenue_month], 0) AS [Month], COALESCE([v].[total_orders], 0) AS [TotalOrders], COALESCE([v].[total_revenue], 0.0) AS [TotalRevenue]
+      FROM [vw_revenue_by_month] AS [v]
+      ORDER BY [v].[revenue_year] DESC, [v].[revenue_month] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[product_id] AS [ProductId], [p0].[product_name] AS [ProductName], [p].[sku_code] AS [SkuCode], [p].[stock_quantity] AS [StockQuantity]
+      FROM [product_skus] AS [p]
+      INNER JOIN [products] AS [p0] ON [p].[product_id] = [p0].[product_id]
+      WHERE [p].[sku_id] = (
+          SELECT MIN([p1].[sku_id])
+          FROM [product_skus] AS [p1]
+          WHERE [p1].[product_id] = [p].[product_id]) AND [p].[status] = 'ACTIVE' AND [p0].[status] = 'ACTIVE' AND [p].[stock_quantity] <= 5
+      ORDER BY [p].[stock_quantity], [p0].[product_name]

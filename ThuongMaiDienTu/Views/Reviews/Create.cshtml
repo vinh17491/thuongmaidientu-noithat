@@ -1,0 +1,49 @@
+@model ReviewCreateViewModel
+
+@{
+    ViewData["Title"] = "Đánh giá sản phẩm";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Đánh giá sản phẩm đã mua</div>
+            <div class="card-body">
+                <h1 class="h4">@Model.ProductName</h1>
+                <p class="text-muted">Đánh giá của bạn sẽ được hiển thị trên trang sản phẩm.</p>
+
+                <form asp-action="Create" method="post">
+                    <input asp-for="OrderItemId" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Rating" class="form-label"></label>
+                        <select asp-for="Rating" class="form-select">
+                            <option value="5">5 sao — Rất tốt</option>
+                            <option value="4">4 sao — Tốt</option>
+                            <option value="3">3 sao — Bình thường</option>
+                            <option value="2">2 sao — Chưa tốt</option>
+                            <option value="1">1 sao — Không hài lòng</option>
+                        </select>
+                        <span asp-validation-for="Rating" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Comment" class="form-label"></label>
+                        <textarea asp-for="Comment" class="form-control" rows="5"
+                                  placeholder="Chia sẻ trải nghiệm của bạn..."></textarea>
+                        <span asp-validation-for="Comment" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+                    <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId"
+                       class="btn btn-outline-secondary">Quay lại đơn hàng</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

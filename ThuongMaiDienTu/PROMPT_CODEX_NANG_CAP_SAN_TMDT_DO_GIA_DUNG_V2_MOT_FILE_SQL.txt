@@ -1,0 +1,1135 @@
+# MASTER PROMPT CODEX — NÂNG CẤP DỰ ÁN THÀNH SÀN THƯƠNG MẠI ĐIỆN TỬ ĐỒ GIA DỤNG ĐA CỬA HÀNG
+
+## VAI TRÒ
+
+Bạn là Senior Software Engineer kiêm Solution Architect, chuyên ASP.NET Core MVC, Entity Framework Core và SQL Server.
+
+Nhiệm vụ là audit và nâng cấp dự án hiện tại thành một **sàn thương mại điện tử đồ gia dụng đa cửa hàng**, có khách hàng, người bán/cửa hàng, đơn vị giao nhận và quản trị viên. Không được biến dự án thành website của một cửa hàng duy nhất.
+
+Làm việc trực tiếp trên repository hiện tại. Ưu tiên tính đúng nghiệp vụ, bảo mật, phân quyền dữ liệu, khả năng chạy ổn định và giao diện đủ tốt để trình bày đồ án.
+
+> **HARD CONSTRAINT — DATABASE:** Chỉ được chỉnh sửa file SQL hiện hữu `thuongmaidientu.sql` hoặc `thuongmaidientu(1).sql`. Tuyệt đối không tạo thêm file `.sql`, EF Migration hoặc bộ script database riêng.
+
+---
+
+# S — STATE
+
+## 1. Trạng thái hiện tại cần xác minh lại trong repo
+
+Dự án hiện được xây dựng bằng:
+
+- ASP.NET Core MVC.
+- .NET 8.
+- Entity Framework Core.
+- SQL Server.
+- Razor Views và Bootstrap.
+- Cookie Authentication.
+- Các role hiện thấy: `ADMIN`, `SELLER`, `CUSTOMER`.
+- Các entity hiện thấy: `User`, `Store`, `ProductCategory`, `Product`, `ProductSku`, `ProductImage`, `Cart`, `CartItem`, `Order`, `OrderItem`, `Review`.
+- Đã có một số chức năng:
+  - Đăng ký, đăng nhập, đăng xuất.
+  - Danh sách và chi tiết sản phẩm.
+  - Quản lý danh mục.
+  - Quản lý sản phẩm, giá, sale price và tồn kho.
+  - Giỏ hàng.
+  - Checkout và đặt hàng.
+  - Lịch sử đơn hàng, hủy đơn đang chờ xác nhận.
+  - Luồng trạng thái đơn hàng.
+  - Đánh giá sản phẩm sau khi giao.
+  - Dashboard cơ bản.
+
+Không được tin tuyệt đối mô tả trên. Trước khi sửa, phải đọc toàn bộ source code, cấu trúc database, cấu hình, log và xác nhận thực tế.
+
+## 2. Các lỗi thiết kế/nghiệp vụ đã phát hiện, phải kiểm tra và xử lý
+
+1. Dự án hiện mới gần với một cửa hàng hơn là một marketplace.
+2. Chưa có module đơn vị giao nhận/carrier.
+3. `SELLER` đang có nguy cơ xem và sửa dữ liệu toàn hệ thống:
+   - Sản phẩm của cửa hàng khác.
+   - Đơn hàng của cửa hàng khác.
+   - Đánh giá của cửa hàng khác.
+   - Dashboard toàn sàn.
+4. Khi tạo sản phẩm, code có dấu hiệu tự lấy cửa hàng hoạt động đầu tiên thay vì cửa hàng thuộc seller đang đăng nhập.
+5. Seller có thể quản lý danh mục dùng chung của toàn sàn; đây là quyền nên thuộc `ADMIN`.
+6. Đơn hàng chưa tách theo từng cửa hàng:
+   - Một giỏ có thể có sản phẩm của nhiều store.
+   - Một seller không được phép cập nhật toàn bộ đơn chứa sản phẩm của seller khác.
+7. `shipping_fee` đang có dấu hiệu luôn bằng 0 và chưa có báo giá/đơn vị vận chuyển thật.
+8. Public catalog và cart có dấu hiệu chỉ sử dụng SKU có ID nhỏ nhất của mỗi sản phẩm:
+   - Không hỗ trợ đúng nhiều biến thể/SKU.
+   - SKU hợp lệ khác có thể bị coi là không được bán.
+9. Product image đang gần như chỉ hỗ trợ một ảnh, trong khi thiết kế sàn cần gallery nhiều ảnh và một ảnh chính.
+10. Trang chủ vẫn mang nội dung mặc định của template ASP.NET và giao diện tổng thể còn sơ sài.
+11. Chưa có trang gian hàng riêng cho từng store.
+12. Chưa có seller onboarding, tạo/quản lý cửa hàng và admin duyệt cửa hàng.
+13. Chưa có carrier onboarding, bảng giá, vùng phục vụ, yêu cầu vận chuyển, tracking.
+14. Chưa có pagination, sorting và filter đầy đủ cho catalog/admin lists.
+15. Chưa có lịch sử thay đổi giá rõ ràng.
+16. Chưa có order status history và shipment status history.
+17. Chưa có audit log cho các thao tác quản trị quan trọng.
+18. Có tài khoản demo/password khởi tạo trong Development; phải bảo đảm không tạo lỗ hổng hoặc ghi mật khẩu thật trong source.
+19. Chưa thấy migration/bộ script database đầy đủ để bàn giao và tạo lại hệ thống.
+20. Chưa thấy automated test project, README bàn giao và test report.
+21. Source ZIP có thể chứa `.vs`, `bin`, `obj`, log; phải bổ sung `.gitignore` và không đưa các artifact này vào commit.
+22. SEO hiện mới có một số cột nhưng chưa hoàn chỉnh route slug, canonical, sitemap, robots và structured data.
+23. Chưa có chatbox tư vấn khách hàng theo phần nâng cao của đề bài.
+
+## 3. Mục tiêu cuối cùng
+
+Xây dựng thành một marketplace có các actor:
+
+- `ADMIN`: quản trị toàn sàn.
+- `SELLER`: chủ cửa hàng/người bán, chỉ quản lý dữ liệu thuộc store của mình.
+- `CUSTOMER`: tìm kiếm, mua hàng, chọn giao nhận, theo dõi đơn, đánh giá.
+- `CARRIER`: công ty/đơn vị giao nhận, quản lý dịch vụ, báo giá và đơn vận chuyển.
+
+Hệ thống phải thể hiện rõ mô hình nhiều cửa hàng và kết nối nhiều công ty giao nhận.
+
+---
+
+# T — TAILOR
+
+## 1. Nguyên tắc công nghệ
+
+1. Giữ stack hiện tại:
+   - ASP.NET Core MVC .NET 8.
+   - EF Core.
+   - SQL Server.
+   - Razor Views.
+   - Bootstrap hoặc CSS hiện tại.
+2. Không chuyển sang React/Vue/Angular.
+3. Không rewrite toàn bộ project nếu có thể refactor an toàn.
+4. Không phá các chức năng đang chạy.
+5. Không đổi namespace, tên solution hoặc cấu trúc lớn nếu không có lý do kỹ thuật rõ ràng.
+6. Không hardcode:
+   - Connection string production.
+   - Password.
+   - API key.
+   - Store ID.
+   - User ID.
+   - Carrier ID.
+7. Dùng async cho database I/O.
+8. Dùng ViewModel/InputModel riêng; không bind trực tiếp entity ở các form quan trọng.
+9. Dùng `DateTimeOffset.UtcNow` hoặc thống nhất UTC cho dữ liệu mới. Chỉ format giờ địa phương tại UI.
+10. Tránh magic string bằng constants/enums/domain helpers có kiểm soát.
+11. Không đưa `.vs`, `bin`, `obj`, log, secrets vào Git.
+
+## 2. Chiến lược database — RÀNG BUỘC CỨNG: CHỈ MỘT FILE SQL
+
+Repo hiện dùng SQL Server và có file SQL hiện hữu của dự án. Toàn bộ thay đổi database phải được quản lý trong **một file SQL duy nhất**.
+
+### 2.1 File SQL duy nhất được phép chỉnh sửa
+
+- File mục tiêu là file SQL hiện có tên `thuongmaidientu.sql`.
+- Nếu file trong workspace đang có tên chính xác là `thuongmaidientu(1).sql`, phải dùng chính file đó làm file mục tiêu.
+- Không tự đổi tên nếu việc đổi tên có thể tạo thêm bản sao.
+- Trước khi sửa, dùng tìm kiếm trong repository để xác định đúng file SQL hiện hữu.
+- Sau khi xác định, ghi rõ đường dẫn file mục tiêu trong audit.
+- Chỉ được sửa nội dung trong file SQL mục tiêu đó đối với mọi thay đổi DDL, DML, seed và verification.
+
+### 2.2 Nghiêm cấm tạo thêm SQL hoặc migration
+
+Không được:
+
+- Tạo thư mục `database/`, `sql/`, `scripts/database/` hoặc thư mục tương tự chỉ để chứa thêm SQL.
+- Tạo bất kỳ file `.sql` mới nào như:
+  - `schema.sql`
+  - `migration.sql`
+  - `upgrade.sql`
+  - `seed.sql`
+  - `verification.sql`
+  - `rollback.sql`
+  - `001_*.sql`, `010_*.sql`, `020_*.sql`
+- Chạy `dotnet ef migrations add`.
+- Tạo thêm thư mục hoặc class EF Migration.
+- Generate migration script sang một file SQL khác.
+- Sao chép file SQL mục tiêu thành bản `new`, `final`, `v2`, `backup`, `fixed` hoặc tên tương tự trong repository.
+- Đưa SQL rải rác vào README, controller hoặc source code để thay cho file SQL chính.
+
+Các EF Migration cũ đang tồn tại trong repo, nếu có, chỉ được giữ nguyên để tránh phá project. Không thêm migration mới.
+
+### 2.3 Cấu trúc bắt buộc bên trong một file SQL
+
+Sắp xếp `thuongmaidientu.sql` thành các section rõ ràng trong cùng một file:
+
+1. Header:
+   - Mục đích file.
+   - Database name: `thuongmaidientu`.
+   - Ngày cập nhật.
+   - Cảnh báo backup.
+   - Hướng dẫn chạy.
+2. Tạo database nếu chưa tồn tại và `USE thuongmaidientu`.
+3. Nâng cấp schema an toàn:
+   - Tạo bảng nếu chưa tồn tại.
+   - Thêm cột nếu chưa tồn tại.
+   - Backfill dữ liệu.
+   - Thêm default/check/foreign key sau khi dữ liệu hợp lệ.
+4. Constraints và indexes.
+5. Views, procedures hoặc functions.
+6. Seed/demo data có `IF NOT EXISTS`.
+7. Verification queries ở cuối file.
+8. Chú thích rõ các thay đổi marketplace.
+
+Dùng comment section lớn để file dài vẫn dễ quản lý.
+
+### 2.4 Yêu cầu an toàn và chạy lại được
+
+- File phải idempotent ở mức hợp lý và có thể chạy lại mà không tạo duplicate data.
+- Không mặc định `DROP DATABASE`.
+- Không mặc định xóa toàn bộ bảng hoặc dữ liệu.
+- Phải loại bỏ/refactor khối đang `DROP TABLE` hàng loạt nếu nó gây mất dữ liệu.
+- Chỉ được `DROP/CREATE` view hoặc procedure khi không làm mất dữ liệu nghiệp vụ.
+- Với thay đổi bảng:
+  1. Kiểm tra tồn tại.
+  2. Thêm cột nullable nếu cần.
+  3. Backfill.
+  4. Kiểm tra dữ liệu lỗi.
+  5. Mới thêm constraint hoặc chuyển sang `NOT NULL`.
+- Dùng transaction cho từng nhóm nâng cấp có thể rollback an toàn.
+- Dùng `TRY...CATCH`, `XACT_STATE()` và `THROW` cho các block thay đổi quan trọng.
+- Không nuốt lỗi.
+- Không dùng `EnsureCreated`.
+- Không xóa dữ liệu cũ chỉ để làm schema mới dễ hơn.
+- Trước khi chạy trên database hiện có, phải tạo backup.
+- Rollback dựa trên database backup; không tạo file rollback SQL riêng.
+
+### 2.5 Đồng bộ EF Core
+
+Sau khi chỉnh schema trong file SQL duy nhất:
+
+- Cập nhật entity, configuration và `DbContext` cho khớp schema.
+- Không dùng migration mới.
+- Không để model và database lệch nhau.
+- Build và chạy smoke test sau mỗi nhóm thay đổi.
+- Nếu scaffold lại model, chỉ ghi đè đúng model/configuration cần thiết và review diff trước khi giữ thay đổi.
+
+### 2.6 Kiểm tra file SQL
+
+Phải kiểm tra tối thiểu:
+
+1. Chạy file trên database mới.
+2. Chạy file trên bản sao database hiện tại.
+3. Chạy lại file lần thứ hai để kiểm tra idempotency.
+4. Chạy verification queries ở cuối chính file đó.
+5. Xác nhận không có file `.sql` mới phát sinh trong Git diff.
+
+Ràng buộc một-file-SQL này có mức ưu tiên cao hơn mọi hướng dẫn khác trong prompt.
+
+## 3. Mô hình dữ liệu marketplace tối thiểu
+
+Giữ các bảng hiện có khi phù hợp và nâng cấp theo hướng sau.
+
+### 3.1 Người dùng và phân quyền
+
+`users`
+- Giữ các trường hiện có.
+- Role hợp lệ: `ADMIN`, `SELLER`, `CUSTOMER`, `CARRIER`.
+- Chuẩn hóa email lowercase.
+- Status: `PENDING`, `ACTIVE`, `SUSPENDED`, `REJECTED`.
+- Không lưu plain password.
+
+Có thể thêm:
+- `user_addresses`: địa chỉ nhận hàng của customer.
+- `audit_logs`: actor, action, entity, entity_id, before_json, after_json, created_at, ip_address.
+
+### 3.2 Cửa hàng
+
+`stores`
+- OwnerUserId phải là seller hợp lệ.
+- Thêm thông tin cần thiết nếu thiếu:
+  - Logo URL.
+  - Banner URL.
+  - Phone/email.
+  - Pickup address.
+  - Approval status.
+  - Rating summary.
+  - UpdatedAt.
+- Một seller chỉ thao tác trên store thuộc quyền sở hữu của mình.
+- Admin được xem toàn bộ và duyệt/khóa store.
+
+Nếu cần hỗ trợ nhiều nhân viên cho một cửa hàng, thêm `store_members`; không bắt buộc nếu làm tăng rủi ro quá mức.
+
+### 3.3 Sản phẩm và SEO
+
+`product_categories`
+- Danh mục dùng chung toàn sàn.
+- Chỉ `ADMIN` được CRUD.
+- Seller chỉ được chọn danh mục đang hoạt động.
+
+`products`
+- Bắt buộc thuộc một `store`.
+- Route canonical nên theo:
+  - `/cua-hang/{storeSlug}/san-pham/{productSlug}`
+- Giữ SEO title/description.
+- Thêm metadata nếu cần: specifications, warranty, origin, weight, dimensions.
+- Không lưu HTML chưa sanitize.
+
+`product_skus`
+- Hỗ trợ nhiều SKU/biến thể thực sự.
+- Không dùng `MIN(SkuId)` để đại diện duy nhất cho sản phẩm.
+- Mỗi SKU có:
+  - SKU code.
+  - Variant name hoặc attributes.
+  - Price.
+  - Stock.
+  - Status.
+  - Sale fields nếu giữ cách hiện tại.
+  - RowVersion để chống mất cập nhật tồn kho.
+
+`product_images`
+- Quan hệ Product 1-N ProductImages.
+- Cho phép nhiều ảnh.
+- Chỉ một ảnh `IsPrimary = true` cho mỗi product.
+- Có sort order và alt text.
+- Seller chỉ sửa ảnh sản phẩm của store mình.
+- Ưu tiên upload file ảnh vào `wwwroot/uploads/products/...`; validate MIME, extension, kích thước và tên file.
+- Nếu vẫn cho URL ngoài, phải validate scheme HTTP/HTTPS.
+
+`product_price_histories`
+- SkuId.
+- OldPrice.
+- NewPrice.
+- ChangeType.
+- ChangedByUserId.
+- ChangedAt.
+- Reason.
+
+Khuyến mãi:
+- Có thể giữ `SalePrice/SaleStart/SaleEnd` để tương thích.
+- Nếu triển khai promotion riêng, dùng `promotions` và `promotion_skus`.
+- Không để hai khuyến mãi chồng chéo gây giá âm hoặc giá sale >= giá thường.
+- Mọi tính giá phải dùng một pricing service dùng chung ở catalog, cart và checkout.
+
+### 3.4 Giỏ hàng và checkout đa cửa hàng
+
+Giỏ hàng phải:
+
+- Chứa sản phẩm từ nhiều store.
+- UI group theo từng cửa hàng.
+- Cho chọn đúng SKU/variant.
+- Hiển thị tổng tiền từng store và tổng toàn giỏ.
+- Kiểm tra lại status, giá và stock ở server.
+- Không tin giá gửi từ client.
+- Không cho thêm sản phẩm của store/product/SKU bị khóa.
+
+Checkout phải:
+
+1. Group cart item theo `StoreId`.
+2. Tạo một `orders` cha cho customer.
+3. Tạo một `store_orders` cho từng store.
+4. Mỗi `order_item` phải liên kết đúng `store_order_id`.
+5. Trừ tồn kho trong transaction.
+6. Sử dụng isolation/concurrency hợp lý để tránh overselling.
+7. Lưu snapshot:
+   - Product name.
+   - SKU code.
+   - Unit price.
+   - Store name.
+   - Shipping service.
+8. Clear chỉ các cart item đã checkout thành công.
+9. Không hardcode shipping fee bằng 0.
+10. Nếu không có dịch vụ giao nhận hợp lệ, block checkout và báo rõ store nào chưa hỗ trợ.
+
+### 3.5 Đơn hàng đa cửa hàng
+
+`orders`
+- Là đơn tổng của customer.
+- Chứa thông tin customer, địa chỉ, payment method và tổng tiền toàn đơn.
+
+`store_orders`
+- OrderId.
+- StoreId.
+- StoreOrderCode.
+- Subtotal.
+- DiscountAmount.
+- ShippingFee.
+- TotalAmount.
+- Status.
+- CreatedAt/UpdatedAt.
+- Seller chỉ được xem/cập nhật store order thuộc store của mình.
+- Customer được xem toàn bộ các store order của đơn cha.
+- Admin được xem toàn sàn.
+
+`order_items`
+- Bổ sung `store_order_id`.
+- Snapshot dữ liệu tại thời điểm mua.
+- Không phụ thuộc hoàn toàn vào product hiện tại để hiển thị lịch sử.
+
+`order_status_histories`
+- StoreOrderId hoặc OrderId.
+- OldStatus.
+- NewStatus.
+- ChangedByUserId.
+- Note.
+- CreatedAt.
+
+Trạng thái store order tối thiểu:
+- `PENDING`
+- `CONFIRMED`
+- `PROCESSING`
+- `SHIPPING`
+- `DELIVERED`
+- `CANCELLED`
+
+Luồng hợp lệ:
+- PENDING -> CONFIRMED hoặc CANCELLED.
+- CONFIRMED -> PROCESSING hoặc CANCELLED nếu chưa bàn giao carrier.
+- PROCESSING -> SHIPPING.
+- SHIPPING -> DELIVERED.
+- Không cho chuyển ngược tùy tiện.
+- Khi hủy trước khi giao: hoàn kho đúng một lần.
+- Dùng cờ/history để không hoàn kho hai lần.
+- Parent order được tính trạng thái tổng hợp từ các store order.
+
+### 3.6 Công ty giao nhận
+
+Thêm module `CARRIER`.
+
+Các bảng tối thiểu:
+
+`shipping_providers`
+- OwnerUserId.
+- ProviderName.
+- Slug.
+- Phone/email.
+- Description.
+- Status/approval status.
+- Rating.
+- CreatedAt/UpdatedAt.
+
+`shipping_services`
+- ProviderId.
+- ServiceName.
+- ServiceCode.
+- BaseFee.
+- EstimatedMinDays.
+- EstimatedMaxDays.
+- MaxWeight.
+- Status.
+
+`shipping_rate_rules`
+- ShippingServiceId.
+- Origin area.
+- Destination area.
+- MinWeight/MaxWeight.
+- Fee.
+- ExtraFeePerKg.
+- COD support.
+- Status.
+
+`shipping_quotes`
+- StoreOrderId hoặc checkout draft key.
+- ProviderId/ShippingServiceId.
+- Fee.
+- EstimatedMinDays/MaxDays.
+- ExpiresAt.
+- Status.
+- SelectedAt.
+
+`shipments`
+- StoreOrderId.
+- ProviderId.
+- ShippingServiceId.
+- ShippingFee.
+- TrackingCode.
+- Status.
+- PickupAddress.
+- DeliveryAddress.
+- EstimatedDeliveryAt.
+- PickedUpAt.
+- DeliveredAt.
+- CreatedAt/UpdatedAt.
+
+`shipment_status_histories`
+- ShipmentId.
+- OldStatus/NewStatus.
+- ChangedByUserId.
+- Note.
+- CreatedAt.
+
+Carrier portal:
+- Quản lý hồ sơ doanh nghiệp.
+- Quản lý dịch vụ và bảng giá.
+- Xem shipment thuộc provider của mình.
+- Cập nhật tracking theo state machine.
+- Không xem shipment của carrier khác.
+- Dashboard số đơn, tỷ lệ giao thành công, doanh thu phí vận chuyển, thời gian giao trung bình.
+
+Cách chọn giao nhận:
+- Checkout phải lấy quote theo pickup address của store, địa chỉ customer, trọng lượng và rule.
+- Customer chọn dịch vụ phù hợp cho từng store; hoặc hệ thống chọn mặc định rẻ nhất nhưng phải hiển thị và cho đổi.
+- Quote được snapshot vào store order/shipment.
+- Seller không được tự sửa shipping fee sau khi customer đã xác nhận.
+- Admin có thể can thiệp nhưng phải có audit log.
+
+### 3.7 Đánh giá và bình luận
+
+- Customer chỉ được đánh giá sản phẩm trong store order đã `DELIVERED`.
+- Một order item chỉ được đánh giá một lần bởi đúng customer.
+- Review có trạng thái moderation.
+- Seller chỉ xem review của product thuộc store mình.
+- Seller không được xóa review; chỉ có thể phản hồi hoặc báo cáo.
+- Admin được ẩn/hiện review vi phạm.
+- Có thể thêm `store_review_reply` hoặc seller response nếu đủ thời gian.
+- Không render nội dung bình luận bằng raw HTML.
+
+### 3.8 Báo cáo
+
+Admin dashboard:
+- Tổng người dùng theo role.
+- Tổng stores/carriers theo trạng thái.
+- GMV/doanh thu theo ngày/tháng.
+- Số đơn và store order theo trạng thái.
+- Top product/store.
+- Tỷ lệ hủy.
+- Thống kê giao nhận.
+
+Seller dashboard:
+- Chỉ dữ liệu store của seller.
+- Doanh thu, số đơn, top product, low stock, review.
+- Lọc theo thời gian.
+
+Carrier dashboard:
+- Chỉ dữ liệu provider của carrier.
+- Shipment theo trạng thái.
+- Phí vận chuyển.
+- Tỷ lệ giao thành công.
+- Giao trễ.
+
+Không dùng SQL view toàn sàn cho seller nếu view không có StoreId để scope.
+
+### 3.9 Chatbox tư vấn khách hàng — phần nâng cao
+
+Triển khai sau khi các module core đã pass.
+
+Yêu cầu:
+
+- Nút chat nổi, responsive, không che nút checkout.
+- Tạo abstraction `IChatAssistantService`.
+- Có local fallback không cần API trả lời:
+  - Chính sách mua hàng.
+  - Trạng thái đơn.
+  - Cách tìm sản phẩm.
+  - Tìm sản phẩm theo từ khóa, danh mục, khoảng giá.
+- Nếu tích hợp AI:
+  - API key từ environment/User Secrets.
+  - Không hardcode key.
+  - Không gửi password, full address, phone hoặc dữ liệu riêng tư không cần thiết.
+  - Tool/function gọi catalog phải filter sản phẩm ACTIVE.
+  - Khi đọc đơn hàng phải xác thực và chỉ dùng order của customer hiện tại.
+  - Có timeout, cancellation token, rate limit và xử lý lỗi.
+  - Không cho model tự thay đổi đơn, giá, kho hoặc trạng thái.
+- Sanitize input/output.
+- Lưu hội thoại tối thiểu hoặc không lưu; nếu lưu phải gắn đúng user/session và có chính sách xóa.
+- Chatbox là tính năng bổ sung, không được làm hỏng core marketplace.
+
+---
+
+# E — EVALUATE
+
+## 1. Audit bắt buộc trước khi code
+
+Tạo `docs/AUDIT_MARKETPLACE.md` gồm:
+
+1. Cấu trúc solution/project.
+2. Danh sách package.
+3. Cách kết nối database.
+4. Schema hiện tại.
+5. Actors/roles và quyền hiện tại.
+6. Danh sách controller/action/route.
+7. Luồng:
+   - Đăng nhập.
+   - Quản lý sản phẩm.
+   - Cart.
+   - Checkout.
+   - Order.
+   - Review.
+8. Những phần đã đáp ứng yêu cầu tuần 3-9.
+9. Những phần thiếu hoặc sai.
+10. Bug/security issue theo mức:
+   - Critical.
+   - High.
+   - Medium.
+   - Low.
+11. Kế hoạch sửa theo phase.
+12. File bị ảnh hưởng.
+
+Không sửa code lớn trước khi audit xong.
+
+## 2. Kiểm tra phân quyền và data ownership
+
+Phải tạo policy/service dùng chung, không rải logic dễ sai:
+
+- `AdminOnly`.
+- `SellerOnly`.
+- `CarrierOnly`.
+- `CustomerOnly`.
+- `AdminOrSeller`.
+- Ownership check:
+  - Store thuộc seller hiện tại.
+  - Product thuộc store của seller.
+  - StoreOrder thuộc store của seller.
+  - Review thuộc product/store của seller.
+  - Shipment thuộc provider của carrier.
+  - Order thuộc customer.
+
+Tất cả GET/POST edit/delete/details đều phải kiểm tra ownership ở server.
+
+Test bắt buộc:
+- Seller A không xem/sửa product của Seller B.
+- Seller A không xem/cập nhật store order của Seller B.
+- Carrier A không xem/cập nhật shipment của Carrier B.
+- Customer A không xem order của Customer B.
+- IDOR phải trả 404 hoặc 403 nhất quán.
+
+## 3. Security checklist
+
+- Anti-forgery cho mọi state-changing MVC POST.
+- Không dùng GET để thay đổi dữ liệu.
+- Secure cookie production:
+  - HttpOnly.
+  - Secure Always trong production.
+  - SameSite phù hợp.
+- Login rate limiting.
+- Không tiết lộ tài khoản tồn tại qua thông báo login.
+- Password tối thiểu 8 ký tự; khuyến nghị chữ hoa, chữ thường, số, ký tự đặc biệt.
+- Không ghi password/token vào log.
+- Không để demo password cố định tự động thay hash của mọi admin/seller.
+- Secrets qua environment/User Secrets.
+- Validate upload file.
+- Validate và encode mọi user content.
+- Có global exception handling và production error page.
+- Có security headers cơ bản.
+- Audit log cho duyệt/khóa store, carrier; thay đổi giá; thay đổi status; can thiệp shipping.
+- Không mass assignment entity.
+- Dùng transaction cho checkout/cancel/update shipment.
+- Có RowVersion/concurrency cho stock, order/store order/shipment quan trọng.
+
+## 4. Data integrity checklist
+
+- Price > 0.
+- SalePrice > 0 và < Price.
+- SaleEnd > SaleStart.
+- Stock >= 0.
+- Quantity > 0.
+- Một primary image/product.
+- Slug unique đúng scope.
+- SKU code unique.
+- Store owner role hợp lệ.
+- Provider owner role hợp lệ.
+- Store order tổng tiền bằng sum item + fee - discount.
+- Parent order tổng bằng sum store order.
+- Không hoàn stock hai lần.
+- Không tạo duplicate review.
+- Không chọn quote hết hạn.
+- Shipment chỉ thuộc đúng một store order.
+- Tracking code unique nếu có.
+- Check constraints và indexes tương ứng trong SQL.
+
+## 5. Performance checklist
+
+- Pagination server-side cho catalog/admin/orders/reviews.
+- Không `ToList()` trước khi filter/paginate.
+- Dùng projection ViewModel.
+- `AsNoTracking()` cho read-only.
+- Tránh `Include` thừa/N+1.
+- Index:
+  - Product StoreId/CategoryId/Status.
+  - Product slug.
+  - SKU product/status/code.
+  - Store owner/status/slug.
+  - Order user/created/status.
+  - StoreOrder store/status/created.
+  - Shipment provider/status/tracking.
+  - Review product/status.
+  - Shipping rate lookup.
+- Search tối thiểu an toàn với `LIKE`; không cần thêm Elasticsearch.
+- Cache danh mục public nếu hợp lý.
+- Không tối ưu sớm gây khó bảo trì.
+
+## 6. UX/UI checklist
+
+Thiết kế lại nhưng giữ MVC/Razor:
+
+Public:
+- Trang chủ marketplace hoàn chỉnh.
+- Header có logo, search, categories, login/account, cart.
+- Hero/banner.
+- Danh mục đồ gia dụng.
+- Sản phẩm nổi bật/mới/khuyến mãi.
+- Gian hàng nổi bật.
+- Khối cam kết/đơn vị giao nhận.
+- Footer đầy đủ.
+- Responsive mobile.
+
+Catalog:
+- Search.
+- Filter category/store/brand/price/rating/in-stock.
+- Sort newest/price/rating.
+- Pagination.
+- Product card nhất quán.
+- Không vỡ ảnh.
+
+Product details:
+- Gallery.
+- SKU/variant selection.
+- Price/promotion.
+- Stock.
+- Store info/link.
+- Shipping options estimate.
+- Reviews.
+- SEO metadata.
+
+Store page:
+- Logo/banner.
+- Description.
+- Rating.
+- Product catalog riêng.
+- Filter/sort/pagination.
+
+Seller/Admin/Carrier:
+- Sidebar hoặc navigation rõ.
+- Dashboard cards.
+- Table responsive.
+- Filter/status badges.
+- Empty state.
+- Confirmation modal cho thao tác nguy hiểm.
+- Validation message rõ.
+
+Không dùng placeholder “Welcome” hoặc link tutorial mặc định.
+
+## 7. SEO checklist
+
+- Route slug cho category/store/product.
+- Canonical URL.
+- Meta title/description.
+- Open Graph cơ bản.
+- JSON-LD Product/Breadcrumb/Organization khi phù hợp.
+- `robots.txt`.
+- `sitemap.xml` động cho active categories/stores/products.
+- Alt text ảnh.
+- Heading H1-H2 hợp lý.
+- Không duplicate content giữa route ID và slug; redirect route cũ sang canonical.
+- Không index admin/account/cart/checkout.
+
+## 8. Test bắt buộc
+
+Tạo test project, ưu tiên xUnit.
+
+Unit tests:
+- Pricing service.
+- Promotion time window.
+- Order/store-order state machine.
+- Shipment state machine.
+- Parent order status aggregation.
+- Shipping quote calculation.
+- Slug normalization.
+- Cart totals.
+
+Integration/service tests:
+- Đăng ký/login hợp lệ.
+- Seller ownership.
+- Carrier ownership.
+- Multi-store checkout tạo đúng 1 order cha + N store orders.
+- Tồn kho trừ đúng.
+- Checkout thất bại rollback toàn bộ.
+- Hủy hoàn kho đúng một lần.
+- Không oversell khi có concurrency.
+- Review chỉ sau delivered.
+- Shipping fee snapshot đúng.
+- Quote hết hạn không dùng được.
+
+Nếu khó dùng SQL Server trong CI:
+- Dùng SQL Server container/Testcontainers nếu project hỗ trợ.
+- Không dùng EF InMemory cho test cần constraint/transaction.
+- Có thể dùng SQLite cho test nhẹ nhưng phải ghi rõ giới hạn.
+
+---
+
+# P — PLAN
+
+Thực hiện theo thứ tự. Sau mỗi phase phải build/test trước khi chuyển tiếp.
+
+## PHASE 0 — An toàn và audit
+
+1. Xác nhận branch hiện tại.
+2. Nếu đang ở `main`, tạo branch:
+   - `feature/marketplace-household-upgrade`
+3. Không push, không merge nếu người dùng chưa yêu cầu.
+4. Tạo backup database hoặc hướng dẫn backup.
+5. Tạo:
+   - `docs/AUDIT_MARKETPLACE.md`
+   - `docs/IMPLEMENTATION_PLAN.md`
+6. Ghi lại baseline build/test.
+7. Không sửa code nếu chưa hiểu schema hiện tại.
+
+Gate:
+- Audit chỉ rõ current state và file impact.
+- Có plan theo P0/P1/P2.
+
+## PHASE 1 — Nền tảng database và authorization
+
+1. Xác nhận Database First và xác định đúng file SQL hiện hữu:
+   - `thuongmaidientu.sql`, hoặc
+   - `thuongmaidientu(1).sql` nếu đó là tên thật trong workspace.
+2. Chỉ chỉnh sửa file SQL duy nhất này.
+3. Không tạo migration và không tạo thêm bất kỳ file `.sql` nào.
+4. Refactor file SQL thành script tạo mới + nâng cấp + seed + verification an toàn trong cùng một file.
+5. Thêm role `CARRIER`.
+4. Thêm các bảng:
+   - user_addresses.
+   - store_orders.
+   - order_status_histories.
+   - shipping_providers.
+   - shipping_services.
+   - shipping_rate_rules.
+   - shipping_quotes.
+   - shipments.
+   - shipment_status_histories.
+   - product_price_histories.
+   - audit_logs.
+5. Chuyển Product-ProductImage thành 1-N.
+6. Thêm RowVersion nơi cần.
+7. Tạo authorization policies và ownership service.
+8. Sửa seller scoping ở toàn bộ module hiện tại.
+
+Gate:
+- Seller A không đọc/sửa dữ liệu Seller B.
+- Carrier A không đọc/sửa dữ liệu Carrier B.
+- Schema upgrade giữ dữ liệu cũ.
+
+## PHASE 2 — Quản lý tài khoản, store và carrier
+
+Admin:
+- Quản lý user.
+- Duyệt/khóa seller store.
+- Duyệt/khóa shipping provider.
+- Quản lý category toàn sàn.
+
+Seller:
+- Tạo/chỉnh sửa store của mình.
+- Không tự duyệt store.
+- Chỉ thấy store của mình.
+
+Carrier:
+- Tạo/chỉnh sửa provider profile.
+- Quản lý services/rate rules sau khi được duyệt.
+
+Gate:
+- Role và approval flow hoạt động.
+- Menu hiển thị đúng role.
+
+## PHASE 3 — Catalog, sản phẩm, nhiều SKU, nhiều ảnh và giá
+
+1. Refactor ProductAdmin theo store của seller.
+2. Admin có thể xem toàn sàn và filter store.
+3. CRUD nhiều SKU.
+4. CRUD gallery nhiều ảnh.
+5. Upload ảnh an toàn.
+6. Price history.
+7. Promotion validation.
+8. Catalog public:
+   - filter.
+   - sort.
+   - pagination.
+   - category/store pages.
+9. Product detail chọn SKU và gửi đúng SkuId vào cart.
+10. Xóa mọi logic chỉ chấp nhận `MIN(SkuId)`.
+
+Gate:
+- Một product có ít nhất 2 SKU đều mua được đúng.
+- Seller không sửa product của store khác.
+- Giá hiển thị giống nhau ở catalog/cart/checkout.
+
+## PHASE 4 — Cart và checkout đa cửa hàng
+
+1. Group cart theo store.
+2. Tạo shipping quote cho từng store group.
+3. Customer chọn service/carrier cho từng store.
+4. Server revalidate quote, price, stock.
+5. Tạo:
+   - 1 parent order.
+   - N store orders.
+   - N shipment hoặc shipment draft tương ứng.
+6. Transaction và concurrency.
+7. Tổng tiền đúng.
+8. Clear cart đúng.
+
+Gate:
+- Cart có sản phẩm từ 2 store tạo 2 store order.
+- Mỗi seller chỉ thấy store order của mình.
+- Shipping fee không còn hardcode 0.
+- Rollback đầy đủ khi một group lỗi.
+
+## PHASE 5 — Order và shipment workflow
+
+Customer:
+- Xem order cha và từng store order.
+- Theo dõi shipment/tracking.
+- Hủy theo rule.
+
+Seller:
+- Xác nhận.
+- Xử lý.
+- Bàn giao vận chuyển.
+- Không cập nhật phần của store khác.
+
+Carrier:
+- Nhận/được gán shipment.
+- Cập nhật pickup, in transit, delivered/failed.
+- Không nhảy trạng thái trái phép.
+
+Admin:
+- Xem toàn bộ.
+- Can thiệp có audit log.
+
+Gate:
+- State machine và history đúng.
+- Stock không hoàn hai lần.
+- Delivered đồng bộ store order/order cha/payment COD hợp lý.
+
+## PHASE 6 — Review, dashboard và báo cáo
+
+1. Review verified purchase.
+2. Seller review list scoped.
+3. Admin moderation.
+4. Seller response nếu đủ thời gian.
+5. Admin dashboard toàn sàn.
+6. Seller dashboard theo store.
+7. Carrier dashboard theo provider.
+8. Date filter và pagination.
+9. Export CSV chỉ khi đơn giản và an toàn.
+
+Gate:
+- Không rò dữ liệu giữa seller/carrier.
+- Số liệu dashboard khớp verification queries.
+
+## PHASE 7 — UI/UX và SEO
+
+1. Thay Home mặc định bằng marketplace home.
+2. Hoàn thiện responsive layout.
+3. Store page.
+4. Empty/loading/error states.
+5. Slug routes/canonical.
+6. Sitemap/robots/JSON-LD.
+7. Accessibility cơ bản.
+
+Gate:
+- Không còn nội dung template mặc định.
+- Mobile không vỡ layout.
+- Product/store/category có canonical URL.
+
+## PHASE 8 — Chatbox tư vấn
+
+1. Tạo UI chatbox.
+2. Local fallback.
+3. `IChatAssistantService`.
+4. Optional AI provider qua environment.
+5. Catalog search tools.
+6. Auth scope khi truy vấn order.
+7. Rate limit và error handling.
+8. Test quyền riêng tư.
+
+Gate:
+- Không có API key trong repo.
+- Chatbox lỗi không làm hỏng trang.
+- Không đọc order của user khác.
+
+## PHASE 9 — Test, tài liệu và bàn giao
+
+Tạo/cập nhật:
+
+- `README.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DATABASE.md`
+- `docs/ROLES_AND_PERMISSIONS.md`
+- `docs/ORDER_STATE_MACHINE.md`
+- `docs/SHIPPING_STATE_MACHINE.md`
+- `docs/TEST_CASES.md`
+- `docs/TEST_REPORT.md`
+- `docs/KNOWN_LIMITATIONS.md`
+- `.gitignore`
+- File SQL duy nhất `thuongmaidientu.sql` chứa đầy đủ schema, safe upgrade, seed và verification; không có SQL phụ.
+
+README phải có:
+- Yêu cầu môi trường.
+- Cách tạo database.
+- Cách cấu hình connection string bằng User Secrets hoặc environment.
+- Cách chạy.
+- Cách chạy test.
+- Demo accounts được tạo thế nào.
+- Không ghi mật khẩu thật trong Git.
+- Mô tả module và role.
+- Luồng demo để thuyết trình.
+
+Cuối cùng:
+1. `dotnet restore`
+2. `dotnet build`
+3. `dotnet test`
+4. Chạy database verification queries.
+5. Chạy smoke test các role.
+6. Báo cáo file thay đổi, test pass/fail và vấn đề còn lại.
+
+---
+
+# PRIORITY
+
+## P0 — Bắt buộc để đúng đề
+
+- Marketplace nhiều store.
+- Admin/Seller/Customer/Carrier.
+- Data isolation theo store/provider/customer.
+- Product/category.
+- Giá thay đổi/khuyến mãi.
+- Public storefront.
+- Cart.
+- Multi-store checkout.
+- Order state.
+- History/cancel.
+- Review/comment.
+- Carrier/shipping fee/tracking.
+- Dashboard/report.
+- File SQL duy nhất `thuongmaidientu.sql` chạy lại được và không tạo dữ liệu trùng.
+- Build không lỗi.
+
+## P1 — Chất lượng đồ án
+
+- Multiple SKU.
+- Multiple images.
+- Store page.
+- Pagination/filter/sort.
+- Audit log.
+- Price/status histories.
+- Tests.
+- README.
+- SEO.
+- Giao diện marketplace hoàn chỉnh.
+
+## P2 — Nâng cao
+
+- Chatbox AI/fallback.
+- Seller reply review.
+- Export report.
+- Notification/email.
+- Tối ưu thêm sau khi P0/P1 pass.
+
+Không làm P2 trước P0/P1.
+
+---
+
+# DEFINITION OF DONE
+
+Chỉ được báo hoàn thành khi đáp ứng toàn bộ:
+
+1. Project restore/build thành công.
+2. Test pass hoặc ghi rõ test nào fail và lý do.
+3. Database được quản lý duy nhất trong `thuongmaidientu.sql`; file này hỗ trợ tạo mới, nâng cấp an toàn, seed và verification mà không cần SQL/migration phụ.
+4. Có ít nhất:
+   - 1 admin.
+   - 2 seller.
+   - 3 store.
+   - 2 carrier.
+   - 2 shipping service mỗi carrier.
+   - 5 category.
+   - 15 product.
+   - Một số product có nhiều SKU và nhiều ảnh.
+   - Customer demo.
+5. Demo multi-store:
+   - Customer mua từ ít nhất 2 store.
+   - Chọn shipping service từng store.
+   - Tạo đúng parent order/store orders/shipments.
+6. Seller A không thấy dữ liệu Seller B.
+7. Carrier A không thấy shipment Carrier B.
+8. Order/shipment state machine đúng.
+9. Stock và total đúng.
+10. Review chỉ tạo sau delivered.
+11. Trang Home/Catalog/Product/Store/Cart/Checkout/Order responsive.
+12. Không còn password/API key hardcode.
+13. Không commit `.vs`, `bin`, `obj`, log.
+14. README đủ để máy khác setup.
+15. Có test report và known limitations.
+
+---
+
+# QUY TẮC THỰC THI CHO CODEX
+
+1. Không chỉ viết kế hoạch rồi dừng; sau audit phải triển khai.
+2. Không sửa hàng loạt thiếu kiểm soát.
+3. Sau mỗi phase:
+   - Tóm tắt thay đổi.
+   - Build.
+   - Test.
+   - Sửa lỗi trước khi sang phase mới.
+4. Không dùng `try/catch` để nuốt lỗi.
+5. Không tạo code giả, TODO hoặc button không hoạt động để đánh lừa demo.
+6. Không tạo dữ liệu UI hardcode nếu dữ liệu phải đến từ database.
+7. Không thay đổi nghiệp vụ chỉ để test pass.
+8. Không xóa chức năng cũ nếu có thể migrate.
+9. Không push/merge nếu chưa được yêu cầu.
+10. Khi thiếu database hoặc không thể chạy:
+    - Vẫn hoàn thiện code/script.
+    - Ghi chính xác blocker.
+    - Không tuyên bố đã test thành công.
+11. Khi gặp lựa chọn kiến trúc:
+    - Chọn giải pháp đơn giản nhất đáp ứng đúng marketplace và data isolation.
+    - Không over-engineer thành microservices.
+12. Mỗi controller/service mới phải có trách nhiệm rõ ràng.
+13. Không để controller quá lớn; tách service:
+    - PricingService.
+    - StoreOwnershipService.
+    - CheckoutService.
+    - OrderWorkflowService.
+    - ShippingQuoteService.
+    - ShipmentWorkflowService.
+    - AuditService.
+14. Tránh generic repository nếu chỉ bọc lại DbContext mà không tạo giá trị.
+15. Dùng transaction tại service nghiệp vụ, không rải transaction tùy tiện.
+16. Đối với database, chỉ được sửa file SQL hiện hữu `thuongmaidientu.sql` hoặc `thuongmaidientu(1).sql`.
+17. Không được tạo thêm bất kỳ file `.sql`, EF Migration hoặc thư mục database script nào.
+18. Trước khi kết thúc, chạy `git status`/`git diff --name-only` và xác nhận chỉ có đúng một file SQL trong danh sách thay đổi.
+19. Nếu Codex đã lỡ tạo SQL/migration mới trong quá trình làm:
+    - Chuyển phần cần thiết vào file SQL mục tiêu.
+    - Xóa các SQL/migration mới phát sinh.
+    - Kiểm tra lại project build.
+    - Báo rõ việc đã dọn các file phát sinh.
+
+---
+
+# ĐỊNH DẠNG BÁO CÁO CUỐI CỦA CODEX
+
+Trả về đúng các phần:
+
+## 1. Audit summary
+- Current architecture.
+- Critical issues.
+- Requirements mapping.
+
+## 2. Implementation summary
+- Phase đã làm.
+- File đã thêm/sửa.
+- Database changes.
+- Xác nhận file SQL duy nhất đã sửa và đường dẫn chính xác.
+- Xác nhận không tạo EF Migration hoặc file `.sql` phụ.
+
+## 3. Security and data isolation
+- Policies.
+- Ownership checks.
+- Tests.
+
+## 4. Build and test
+- Lệnh đã chạy.
+- Kết quả.
+- Test pass/fail.
+
+## 5. Demo flow
+- Admin.
+- Seller A.
+- Seller B.
+- Carrier.
+- Customer multi-store checkout.
+
+## 6. Remaining limitations
+- Chỉ liệt kê vấn đề thật còn lại.
+- Không che giấu blocker.
+
+Bắt đầu bằng PHASE 0. Đọc toàn bộ repository trước khi thay đổi bất kỳ schema hoặc nghiệp vụ quan trọng nào.
