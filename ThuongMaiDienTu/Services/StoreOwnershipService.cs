@@ -10,6 +10,8 @@ public interface IStoreOwnershipService
     IQueryable<Order> ScopeOrders(IQueryable<Order> query);
     IQueryable<Review> ScopeReviews(IQueryable<Review> query);
     Task<Store?> GetActiveOwnedStoreAsync(CancellationToken cancellationToken = default);
+    Task<Store?> GetOwnedStoreAsync(long storeId, CancellationToken cancellationToken = default);
+    Task<bool> HasOwnedStoreAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class StoreOwnershipService(
@@ -52,4 +54,14 @@ public sealed class StoreOwnershipService(
             .OrderBy(store => store.StoreId)
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public Task<Store?> GetOwnedStoreAsync(long storeId, CancellationToken cancellationToken = default) =>
+        currentUser.UserId.HasValue
+            ? context.Stores.FirstOrDefaultAsync(store => store.StoreId == storeId && store.OwnerUserId == currentUser.UserId.Value, cancellationToken)
+            : Task.FromResult<Store?>(null);
+
+    public Task<bool> HasOwnedStoreAsync(CancellationToken cancellationToken = default) =>
+        currentUser.UserId.HasValue
+            ? context.Stores.AnyAsync(store => store.OwnerUserId == currentUser.UserId.Value, cancellationToken)
+            : Task.FromResult(false);
 }

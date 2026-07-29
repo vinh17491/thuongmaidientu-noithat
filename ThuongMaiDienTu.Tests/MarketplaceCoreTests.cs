@@ -95,4 +95,27 @@ public sealed class MarketplaceCoreTests
             StoreOrderWorkflow.AggregateParentStatus(
                 [StoreOrderWorkflow.Delivered, StoreOrderWorkflow.Cancelled]));
     }
+
+    [Theory]
+    [InlineData("PENDING", "ACTIVE")]
+    [InlineData("PENDING", "REJECTED")]
+    [InlineData("ACTIVE", "SUSPENDED")]
+    [InlineData("SUSPENDED", "ACTIVE")]
+    [InlineData("REJECTED", "PENDING")]
+    public void StoreWorkflow_AllowsDocumentedTransitions(string current, string next) =>
+        Assert.True(StoreWorkflow.CanTransition(current, next));
+
+    [Theory]
+    [InlineData("ACTIVE", "PENDING")]
+    [InlineData("REJECTED", "ACTIVE")]
+    [InlineData("SUSPENDED", "REJECTED")]
+    public void StoreWorkflow_RejectsUndocumentedTransitions(string current, string next) =>
+        Assert.False(StoreWorkflow.CanTransition(current, next));
+
+    [Theory]
+    [InlineData("Gian hàng Nội Thất", "gian-hang-noi-that")]
+    [InlineData("  Café & Decor  ", "cafe-decor")]
+    [InlineData("../Unsafe Path", "unsafe-path")]
+    public void StoreSlug_IsSafeAndDiacriticFree(string value, string expected) =>
+        Assert.Equal(expected, StoreSlugService.Normalize(value));
 }

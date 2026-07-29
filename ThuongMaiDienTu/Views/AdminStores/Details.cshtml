@@ -1,0 +1,10 @@
+@model ThuongMaiDienTu.ViewModels.AdminStoreDetailsViewModel
+@{ ViewData["Title"] = "Chi tiết gian hàng"; }
+<h1>@Model.Store.StoreName</h1>
+<p>Seller: @Model.Store.SellerName (@Model.Store.SellerEmail)</p>
+<p>Slug: <code>@Model.Slug</code> · Trạng thái: <strong>@Model.Store.Status</strong></p>
+<p>@Model.Description</p>
+<p>Sản phẩm: @Model.Store.ProductCount</p>
+<h2 class="h5">Lịch sử audit</h2>
+<ul>@foreach (var entry in Model.AuditEntries) { <li><code>@entry</code></li> }</ul>
+<a asp-action="Index" class="btn btn-secondary">Quay lại</a>

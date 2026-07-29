@@ -308,8 +308,10 @@ BEGIN TRY
         ALTER TABLE dbo.users WITH CHECK ADD CONSTRAINT CK_users_role CHECK (role IN ('CUSTOMER','SELLER','ADMIN','CARRIER'));
     IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_users_status')
         ALTER TABLE dbo.users WITH CHECK ADD CONSTRAINT CK_users_status CHECK (status IN ('ACTIVE','BLOCKED'));
-    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_stores_status')
-        ALTER TABLE dbo.stores WITH CHECK ADD CONSTRAINT CK_stores_status CHECK (status IN ('ACTIVE','INACTIVE'));
+    IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_stores_status')
+        ALTER TABLE dbo.stores DROP CONSTRAINT CK_stores_status;
+    UPDATE dbo.stores SET status = 'SUSPENDED' WHERE status = 'INACTIVE';
+    ALTER TABLE dbo.stores WITH CHECK ADD CONSTRAINT CK_stores_status CHECK (status IN ('PENDING','ACTIVE','REJECTED','SUSPENDED'));
     IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_product_categories_status')
         ALTER TABLE dbo.product_categories WITH CHECK ADD CONSTRAINT CK_product_categories_status CHECK (status IN ('ACTIVE','INACTIVE'));
     IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_products_status')
@@ -349,6 +351,8 @@ BEGIN TRY
         CREATE UNIQUE INDEX UQ_users_phone ON dbo.users(phone) WHERE phone IS NOT NULL;
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.stores') AND name = N'UQ_stores_slug')
         CREATE UNIQUE INDEX UQ_stores_slug ON dbo.stores(slug);
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.stores') AND name = N'UQ_stores_owner_user')
+        CREATE UNIQUE INDEX UQ_stores_owner_user ON dbo.stores(owner_user_id);
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.product_categories') AND name = N'UQ_product_categories_slug')
         CREATE UNIQUE INDEX UQ_product_categories_slug ON dbo.product_categories(slug);
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'UQ_products_store_slug')

@@ -1,0 +1,9 @@
+@model ThuongMaiDienTu.ViewModels.StoreProfileInputModel
+@{ ViewData["Title"] = "Đăng ký gian hàng"; }
+<h1>Đăng ký gian hàng</h1>
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <partial name="_StoreForm" model="Model" />
+    <button class="btn btn-primary">Gửi hồ sơ</button>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

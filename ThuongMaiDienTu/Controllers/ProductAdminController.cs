@@ -287,6 +287,14 @@ public class ProductAdminController : Controller
             return NotFound();
         }
 
+        if (!_currentUser.IsAdmin && !await _context.Stores.AnyAsync(store =>
+                store.StoreId == product.StoreId && store.Status == "ACTIVE"))
+        {
+            ModelState.AddModelError(string.Empty, "Chỉ gian hàng ACTIVE mới được quản lý sản phẩm.");
+            await LoadFormOptionsAsync(product.StoreId);
+            return View(model);
+        }
+
         var sku = await _context.ProductSkus
             .Where(item => item.ProductId == id)
             .OrderBy(item => item.SkuId)
@@ -459,6 +467,12 @@ public class ProductAdminController : Controller
             .FirstOrDefaultAsync(item => item.ProductId == id);
 
         if (product is null)
+        {
+            return NotFound();
+        }
+
+        if (!_currentUser.IsAdmin && !await _context.Stores.AnyAsync(store =>
+                store.StoreId == product.StoreId && store.Status == "ACTIVE"))
         {
             return NotFound();
         }

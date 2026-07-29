@@ -1,0 +1,20 @@
+@model ThuongMaiDienTu.ViewModels.StoreProfileViewModel?
+@{ ViewData["Title"] = "Gian hàng của tôi"; }
+<h1>Gian hàng của tôi</h1>
+@if (Model is null)
+{
+    <div class="alert alert-info">Bạn chưa có gian hàng.</div>
+    <a class="btn btn-primary" asp-action="Create">Đăng ký gian hàng</a>
+}
+else
+{
+    <div class="card"><div class="card-body">
+        <h2 class="h4">@Model.StoreName</h2>
+        <p>Slug: <code>@Model.Slug</code></p>
+        <p>Trạng thái: <span class="badge text-bg-secondary">@Model.Status</span></p>
+        @if (Model.Status == "PENDING") { <div class="alert alert-warning">Hồ sơ đang chờ Admin duyệt.</div> }
+        @if (Model.Status == "REJECTED") { <div class="alert alert-danger">Hồ sơ bị từ chối. Vui lòng cập nhật và gửi lại cho Admin.</div> }
+        @if (Model.Status == "SUSPENDED") { <div class="alert alert-danger">Gian hàng đang bị tạm ngưng.</div> }
+        <a class="btn btn-outline-primary" asp-action="Edit">Chỉnh sửa hồ sơ</a>
+    </div></div>
+}

@@ -64,6 +64,14 @@
                                            asp-controller="Dashboard"
                                            asp-action="Index">Dashboard</a>
                                     </li>
+                                    @if (User.IsInRole("SELLER"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SellerStores" asp-action="Index">Gian hàng của tôi</a></li>
+                                    }
+                                    @if (User.IsInRole("ADMIN"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="AdminStores" asp-action="Index">Duyệt gian hàng</a></li>
+                                    }
                                 </ul>
                             </li>
                         }
