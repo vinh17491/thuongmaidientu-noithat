@@ -111,3 +111,41 @@ public sealed class Shipment
     public ShippingProvider Provider { get; set; } = null!;
     public ShippingService Service { get; set; } = null!;
 }
+
+[Table("shipment_status_histories")]
+public sealed class ShipmentStatusHistory
+{
+    [Key, Column("history_id")] public long HistoryId { get; set; }
+    [Column("shipment_id")] public long ShipmentId { get; set; }
+    [Column("old_status")] public string? OldStatus { get; set; }
+    [Column("new_status")] public string NewStatus { get; set; } = string.Empty;
+    [Column("changed_by_user_id")] public long ChangedByUserId { get; set; }
+    [Column("note")] public string? Note { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+[Table("order_status_histories")]
+public sealed class OrderStatusHistory
+{
+    [Key, Column("history_id")] public long HistoryId { get; set; }
+    [Column("store_order_id")] public long StoreOrderId { get; set; }
+    [Column("old_status")] public string? OldStatus { get; set; }
+    [Column("new_status")] public string NewStatus { get; set; } = string.Empty;
+    [Column("changed_by_user_id")] public long ChangedByUserId { get; set; }
+    [Column("note")] public string? Note { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+[Table("audit_logs")]
+public sealed class AuditLog
+{
+    [Key, Column("audit_id")] public long AuditId { get; set; }
+    [Column("actor_user_id")] public long? ActorUserId { get; set; }
+    [Column("action")] public string Action { get; set; } = string.Empty;
+    [Column("entity_name")] public string EntityName { get; set; } = string.Empty;
+    [Column("entity_id")] public string? EntityId { get; set; }
+    [Column("before_json")] public string? BeforeJson { get; set; }
+    [Column("after_json")] public string? AfterJson { get; set; }
+    [Column("ip_address")] public string? IpAddress { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}

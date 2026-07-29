@@ -32,6 +32,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IStoreOwnershipService, StoreOwnershipService>();
 builder.Services.AddScoped<ICarrierOwnershipService, CarrierOwnershipService>();
 builder.Services.AddScoped<IShippingQuoteService, ShippingQuoteService>();
+builder.Services.AddScoped<IMarketplaceWorkflowService, MarketplaceWorkflowService>();
 
 var app = builder.Build();
 

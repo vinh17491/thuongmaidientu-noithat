@@ -25,6 +25,9 @@ public partial class ThuongMaiDienTuDbContext : DbContext
     public virtual DbSet<ShippingRateRule> ShippingRateRules { get; set; }
     public virtual DbSet<ShippingQuote> ShippingQuotes { get; set; }
     public virtual DbSet<Shipment> Shipments { get; set; }
+    public virtual DbSet<ShipmentStatusHistory> ShipmentStatusHistories { get; set; }
+    public virtual DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
