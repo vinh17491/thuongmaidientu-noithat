@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using ThuongMaiDienTu.Data;
 using ThuongMaiDienTu.Models;
+using ThuongMaiDienTu.Services;
 using ThuongMaiDienTu.ViewModels;
 
 namespace ThuongMaiDienTu.Controllers
@@ -22,6 +23,20 @@ namespace ThuongMaiDienTu.Controllers
 
         public async Task<IActionResult> Index()
         {
+            var homeProducts = await _context.Products.AsNoTracking()
+                .Where(product =>
+                    product.Status == "ACTIVE" &&
+                    product.Store.Status == "ACTIVE" &&
+                    product.Category.Status == "ACTIVE" &&
+                    product.ProductSkus.Any(sku => sku.Status == "ACTIVE"))
+                .Include(product => product.Store)
+                .Include(product => product.ProductSkus)
+                .Include(product => product.ProductImages)
+                .OrderByDescending(product => product.CreatedAt)
+                .Take(8)
+                .ToListAsync();
+            var now = DateTime.Now;
+
             var model = new HomeViewModel
             {
                 Categories = await _context.ProductCategories.AsNoTracking()
@@ -34,28 +49,39 @@ namespace ThuongMaiDienTu.Controllers
                         CategoryName = category.CategoryName
                     })
                     .ToListAsync(),
-                NewProducts = await _context.Products.AsNoTracking()
-                    .Where(product =>
-                        product.Status == "ACTIVE" &&
-                        product.Store.Status == "ACTIVE" &&
-                        product.Category.Status == "ACTIVE")
-                    .OrderByDescending(product => product.CreatedAt)
-                    .Take(8)
-                    .Select(product => new HomeProductViewModel
+                NewProducts = homeProducts.Select(product =>
                     {
-                        ProductId = product.ProductId,
-                        ProductName = product.ProductName,
-                        StoreName = product.Store.StoreName,
-                        ImageUrl = product.ProductImages
+                        var prices = product.ProductSkus
+                            .Where(sku => sku.Status == "ACTIVE")
+                            .Select(sku => new
+                            {
+                                sku.Price,
+                                Current = ProductPricingHelper.Calculate(
+                                    sku.Price,
+                                    sku.SalePrice,
+                                    sku.SaleStart,
+                                    sku.SaleEnd,
+                                    now).CurrentPrice
+                            })
+                            .ToList();
+                        var lowest = prices.OrderBy(price => price.Current).First();
+                        return new HomeProductViewModel
+                        {
+                            ProductId = product.ProductId,
+                            ProductName = product.ProductName,
+                            StoreName = product.Store.StoreName,
+                            ImageUrl = product.ProductImages
+                            .Where(image => PublicAssetUrlHelper.IsSafeImageUrl(image.ImageUrl))
                             .OrderByDescending(image => image.IsPrimary)
                             .ThenBy(image => image.SortOrder)
                             .Select(image => image.ImageUrl)
                             .FirstOrDefault(),
-                        Price = product.ProductSkus
-                            .Where(sku => sku.Status == "ACTIVE")
-                            .Min(sku => (decimal?)sku.Price) ?? 0
+                            Price = lowest.Price,
+                            CurrentPrice = lowest.Current,
+                            IsOnSale = lowest.Current < lowest.Price
+                        };
                     })
-                    .ToListAsync(),
+                    .ToList(),
                 FeaturedStores = await _context.Stores.AsNoTracking()
                     .Where(store => store.Status == "ACTIVE")
                     .OrderByDescending(store => store.Products.Count(product =>

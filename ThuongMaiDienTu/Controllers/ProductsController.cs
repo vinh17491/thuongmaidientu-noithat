@@ -106,9 +106,11 @@ public class ProductsController : Controller
                     SkuId = item.SkuId,
                     SkuCode = item.SkuCode,
                     Price = item.Price,
+                    SalePrice = item.SalePrice,
                     CurrentPrice = pricing.CurrentPrice,
                     StockQuantity = item.StockQuantity,
-                    IsOnSale = pricing.IsOnSale
+                    IsOnSale = pricing.IsOnSale,
+                    DiscountPercent = pricing.DiscountPercent
                 };
             })
             .ToList();
@@ -139,6 +141,7 @@ public class ProductsController : Controller
             Reviews = reviews,
             Skus = activeSkus,
             Images = product.ProductImages
+                .Where(image => PublicAssetUrlHelper.IsSafeImageUrl(image.ImageUrl))
                 .OrderByDescending(image => image.IsPrimary)
                 .ThenBy(image => image.SortOrder)
                 .ThenBy(image => image.ImageId)

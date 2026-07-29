@@ -45,13 +45,15 @@
                 @foreach (var image in Model.Images)
                 {
                     <button type="button"
-                            class="btn btn-light border p-1 product-thumbnail"
+                            class="btn btn-light border p-1 product-thumbnail @(image == Model.Images[0] ? "active border-primary" : null)"
                             data-image-url="@image.ImageUrl"
                             data-image-alt="@(image.AltText ?? Model.ProductName)">
                         <img src="@image.ImageUrl"
                              alt="@(image.AltText ?? Model.ProductName)"
                              width="72" height="72"
-                             style="object-fit:cover" />
+                             style="object-fit:cover"
+                             onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
+                        <span class="small text-muted" hidden>Ảnh lỗi</span>
                     </button>
                 }
             </div>
@@ -70,47 +72,30 @@
         <p>@Model.ShortDescription</p>
 
         <div class="border-top border-bottom py-3 my-3">
-            @if (Model.IsOnSale)
-            {
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted text-decoration-line-through fs-5">
-                        @Model.Price.ToString("N0") đ
-                    </span>
-                    <span class="badge bg-danger">Giảm @Model.DiscountPercent%</span>
-                </div>
-                <div class="display-6 fw-bold text-danger">
-                    @Model.CurrentPrice.ToString("N0") đ
-                </div>
-
-                @if (Model.SaleEnd.HasValue)
-                {
-                    <div class="small text-muted">
-                        Khuyến mãi đến @Model.SaleEnd.Value.ToString("dd/MM/yyyy HH:mm")
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="display-6 fw-bold">@Model.CurrentPrice.ToString("N0") đ</div>
-            }
+            <div id="regular-price-wrap" class="d-flex align-items-center gap-2 @(Model.IsOnSale ? null : "d-none")">
+                <span id="regular-price" class="text-muted text-decoration-line-through fs-5">
+                    @Model.Price.ToString("N0") đ
+                </span>
+                <span id="discount-badge" class="badge bg-danger">Giảm @Model.DiscountPercent%</span>
+            </div>
+            <div id="current-price" class="display-6 fw-bold @(Model.IsOnSale ? "text-danger" : null)">
+                @Model.CurrentPrice.ToString("N0") đ
+            </div>
         </div>
 
         <dl class="row">
             <dt class="col-sm-4">Mã SKU</dt>
-            <dd class="col-sm-8"><code>@Model.SkuCode</code></dd>
+            <dd class="col-sm-8"><code id="selected-sku-code">@Model.SkuCode</code></dd>
             <dt class="col-sm-4">Cửa hàng</dt>
             <dd class="col-sm-8">@Model.StoreName</dd>
             <dt class="col-sm-4">Tình trạng</dt>
             <dd class="col-sm-8">
-                @if (Model.IsInStock)
-                {
-                    <span class="badge bg-success">Còn hàng</span>
-                    <span class="ms-1">@Model.StockQuantity sản phẩm</span>
-                }
-                else
-                {
-                    <span class="badge bg-secondary">Hết hàng</span>
-                }
+                <span id="stock-badge" class="badge @(Model.IsInStock ? "bg-success" : "bg-secondary")">
+                    @(Model.IsInStock ? "Còn hàng" : "Hết hàng")
+                </span>
+                <span id="stock-quantity" class="ms-1">
+                    @(Model.IsInStock ? $"{Model.StockQuantity} sản phẩm" : "SKU này đã hết hàng")
+                </span>
             </dd>
         </dl>
 
@@ -123,7 +108,10 @@
                     {
                         <option value="@variant.SkuId"
                                 data-stock="@variant.StockQuantity"
+                                data-code="@variant.SkuCode"
+                                data-regular-price="@variant.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                 data-price="@variant.CurrentPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                data-sale="@variant.IsOnSale.ToString().ToLowerInvariant()"
                                 selected="@(variant.SkuId == Model.SkuId ? "selected" : null)">
                             @variant.SkuCode — @variant.CurrentPrice.ToString("N0") đ
                             (@(variant.StockQuantity > 0 ? $"còn {variant.StockQuantity}" : "hết hàng"))
@@ -141,11 +129,11 @@
                     <input id="selected-sku-id" type="hidden" name="SkuId" value="@Model.SkuId" />
                     <div class="input-group">
                         <span class="input-group-text">Số lượng</span>
-                        <input type="number" name="Quantity" value="1"
+                        <input id="purchase-quantity" type="number" name="Quantity" value="1"
                                min="1" max="@Model.StockQuantity"
                                class="form-control"
                                aria-label="Số lượng mua" />
-                        <button type="submit" class="btn btn-primary">Thêm vào giỏ</button>
+                        <button id="add-to-cart-button" type="submit" class="btn btn-primary">Thêm vào giỏ</button>
                     </div>
                 </form>
             }
@@ -221,6 +209,9 @@
     <script>
         document.querySelectorAll(".product-thumbnail").forEach(button => {
             button.addEventListener("click", () => {
+                document.querySelectorAll(".product-thumbnail").forEach(item =>
+                    item.classList.remove("active", "border-primary"));
+                button.classList.add("active", "border-primary");
                 const image = document.querySelector(".product-detail-image");
                 if (image) {
                     image.src = button.dataset.imageUrl;
@@ -232,9 +223,43 @@
         const skuSelector = document.getElementById("sku-selector");
         const selectedSku = document.getElementById("selected-sku-id");
         if (skuSelector && selectedSku) {
-            skuSelector.addEventListener("change", () => {
-                selectedSku.value = skuSelector.value;
-            });
+            const synchronizeVariant = () => {
+                const option = skuSelector.selectedOptions[0];
+                const stock = Number(option.dataset.stock);
+                const price = Number(option.dataset.price);
+                const regularPrice = Number(option.dataset.regularPrice);
+                selectedSku.value = option.value;
+                document.getElementById("selected-sku-code").textContent = option.dataset.code;
+                document.getElementById("current-price").textContent =
+                    price.toLocaleString("vi-VN") + " đ";
+                const stockQuantity = document.getElementById("stock-quantity");
+                const stockBadge = document.getElementById("stock-badge");
+                if (stockQuantity) stockQuantity.textContent =
+                    stock > 0 ? `${stock} sản phẩm` : "SKU này đã hết hàng";
+                if (stockBadge) {
+                    stockBadge.textContent = stock > 0 ? "Còn hàng" : "Hết hàng";
+                    stockBadge.className = `badge ${stock > 0 ? "bg-success" : "bg-secondary"}`;
+                }
+                const quantity = document.getElementById("purchase-quantity");
+                const button = document.getElementById("add-to-cart-button");
+                if (quantity) {
+                    quantity.max = stock;
+                    quantity.disabled = stock <= 0;
+                    if (Number(quantity.value) > stock) quantity.value = Math.max(1, stock);
+                }
+                if (button) button.disabled = stock <= 0;
+                const sale = option.dataset.sale === "true";
+                document.getElementById("current-price").classList.toggle("text-danger", sale);
+                document.getElementById("regular-price").textContent =
+                    regularPrice.toLocaleString("vi-VN") + " đ";
+                document.getElementById("regular-price-wrap").classList.toggle("d-none", !sale);
+                const discount = regularPrice > 0
+                    ? Math.round((regularPrice - price) * 100 / regularPrice)
+                    : 0;
+                document.getElementById("discount-badge").textContent = `Giảm ${discount}%`;
+            };
+            skuSelector.addEventListener("change", synchronizeVariant);
+            synchronizeVariant();
         }
     </script>
 }

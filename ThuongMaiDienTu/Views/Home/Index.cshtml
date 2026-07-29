@@ -46,13 +46,19 @@
                     <div class="product-image-wrap">
                         @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
                         {
-                            <img src="@product.ImageUrl" alt="@product.ProductName" class="product-card-image" />
+                            <img src="@product.ImageUrl" alt="@product.ProductName" class="product-card-image"
+                                 onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
+                            <div class="product-image-placeholder text-muted" hidden>Không tải được ảnh</div>
                         }
                     </div>
                     <div class="card-body">
                         <small class="text-muted">@product.StoreName</small>
                         <h3 class="h6 mt-1">@product.ProductName</h3>
-                        <strong>@product.Price.ToString("N0") đ</strong>
+                        @if (product.IsOnSale)
+                        {
+                            <small class="text-muted text-decoration-line-through d-block">@product.Price.ToString("N0") đ</small>
+                        }
+                        <strong class="@(product.IsOnSale ? "text-danger" : null)">@product.CurrentPrice.ToString("N0") đ</strong>
                     </div>
                     <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId"
                        class="stretched-link"><span class="visually-hidden">Xem @product.ProductName</span></a>

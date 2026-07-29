@@ -21,6 +21,8 @@ public sealed class HomeProductViewModel
     public string StoreName { get; init; } = string.Empty;
     public string? ImageUrl { get; init; }
     public decimal Price { get; init; }
+    public decimal CurrentPrice { get; init; }
+    public bool IsOnSale { get; init; }
 }
 
 public sealed class HomeStoreViewModel
