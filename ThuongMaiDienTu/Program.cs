@@ -34,6 +34,7 @@ builder.Services.AddScoped<IStoreWorkflowService, StoreWorkflowService>();
 builder.Services.AddScoped<ICarrierOwnershipService, CarrierOwnershipService>();
 builder.Services.AddScoped<IShippingQuoteService, ShippingQuoteService>();
 builder.Services.AddScoped<IMarketplaceWorkflowService, MarketplaceWorkflowService>();
+builder.Services.AddScoped<IChatAssistantService, LocalChatAssistantService>();
 
 var app = builder.Build();
 
@@ -63,3 +64,5 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+public partial class Program;

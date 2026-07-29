@@ -16,6 +16,8 @@ dotnet run --project ThuongMaiDienTu/ThuongMaiDienTu.csproj
 
 Database duy nhất là `thuongmaidientu`; SQL duy nhất là `thuongmaidientu.sql`. Cấu hình bí mật qua User Secrets/environment variables, không ghi password thật.
 
+Chatbox là trợ lý mua sắm local tại POST `/tro-ly/hoi`; không dùng external AI API. Hỗ trợ greeting, product/store/category search, order lookup theo claim server-side, hướng dẫn checkout/shipping/review và fallback. Endpoint có anti-forgery và rate limit.
+
 ## Tests
 
 ```text

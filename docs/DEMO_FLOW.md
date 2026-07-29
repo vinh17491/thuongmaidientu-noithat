@@ -11,3 +11,5 @@
 9. Kết luận bằng database groups, SQL script duy nhất và test commands.
 
 Chuẩn bị dữ liệu hợp lệ; không ghi password production.
+
+Chatbox: thử greeting, tìm sản phẩm và hướng dẫn checkout; đây là local assistant, không phải external AI.

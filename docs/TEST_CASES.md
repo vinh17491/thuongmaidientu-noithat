@@ -14,3 +14,5 @@
 | DB-01 | SQL | Constraint/index/schema queryable | SQL integration |
 
 Manual demo không được báo PASS nếu chưa chạy.
+
+CHAT-01: HTTP Chatbox POST, anti-forgery, validation và local fallback — automated.
