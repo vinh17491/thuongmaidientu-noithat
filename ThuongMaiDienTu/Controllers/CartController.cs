@@ -48,32 +48,10 @@ public class CartController : Controller
             return View(new CartViewModel());
         }
 
-        var productIds = cart.CartItems
-            .Select(item => item.Sku.ProductId)
-            .Distinct()
-            .ToList();
-
-        var managedSkuIds = productIds.Count == 0
-            ? new Dictionary<long, long>()
-            : await _context.ProductSkus
-                .AsNoTracking()
-                .Where(sku => productIds.Contains(sku.ProductId))
-                .GroupBy(sku => sku.ProductId)
-                .Select(group => new
-                {
-                    ProductId = group.Key,
-                    SkuId = group.Min(sku => sku.SkuId)
-                })
-                .ToDictionaryAsync(item => item.ProductId, item => item.SkuId);
-
         var now = DateTime.Now;
         var items = cart.CartItems
             .OrderByDescending(item => item.AddedAt)
-            .Select(item => MapCartItem(
-                item,
-                managedSkuIds.TryGetValue(item.Sku.ProductId, out var managedSkuId) &&
-                managedSkuId == item.SkuId,
-                now))
+            .Select(item => MapCartItem(item, now))
             .ToList();
 
         return View(new CartViewModel { Items = items });
@@ -254,12 +232,7 @@ public class CartController : Controller
             return "Sản phẩm không tồn tại.";
         }
 
-        var managedSkuId = await _context.ProductSkus
-            .Where(item => item.ProductId == sku.ProductId)
-            .MinAsync(item => item.SkuId);
-
-        if (sku.SkuId != managedSkuId ||
-            sku.Status != "ACTIVE" ||
+        if (sku.Status != "ACTIVE" ||
             sku.Product.Status != "ACTIVE" ||
             sku.Product.Category.Status != "ACTIVE" ||
             sku.Product.Store.Status != "ACTIVE")
@@ -282,7 +255,6 @@ public class CartController : Controller
 
     private static CartItemViewModel MapCartItem(
         CartItem item,
-        bool isManagedSku,
         DateTime now)
     {
         var sku = item.Sku;
@@ -295,7 +267,6 @@ public class CartController : Controller
             now);
 
         var isMarketActive =
-            isManagedSku &&
             sku.Status == "ACTIVE" &&
             product.Status == "ACTIVE" &&
             product.Category.Status == "ACTIVE" &&

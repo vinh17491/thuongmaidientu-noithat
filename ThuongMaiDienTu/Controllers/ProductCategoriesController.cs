@@ -7,7 +7,7 @@ using ThuongMaiDienTu.Models;
 
 namespace ThuongMaiDienTu.Controllers
 {
-    [Authorize(Roles = "ADMIN,SELLER")]
+    [Authorize(Roles = "ADMIN")]
     public class ProductCategoriesController : Controller
     {
         private readonly ThuongMaiDienTuDbContext _context;

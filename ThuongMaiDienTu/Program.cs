@@ -27,6 +27,11 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IStoreOwnershipService, StoreOwnershipService>();
+builder.Services.AddScoped<ICarrierOwnershipService, CarrierOwnershipService>();
+builder.Services.AddScoped<IShippingQuoteService, ShippingQuoteService>();
 
 var app = builder.Build();
 

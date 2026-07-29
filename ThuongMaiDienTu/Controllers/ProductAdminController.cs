@@ -15,10 +15,17 @@ public class ProductAdminController : Controller
     private static readonly string[] ProductStatuses = ["ACTIVE", "HIDDEN", "DRAFT"];
     private static readonly string[] SkuStatuses = ["ACTIVE", "INACTIVE"];
     private readonly ThuongMaiDienTuDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IStoreOwnershipService _ownership;
 
-    public ProductAdminController(ThuongMaiDienTuDbContext context)
+    public ProductAdminController(
+        ThuongMaiDienTuDbContext context,
+        ICurrentUserService currentUser,
+        IStoreOwnershipService ownership)
     {
         _context = context;
+        _currentUser = currentUser;
+        _ownership = ownership;
     }
 
     [HttpGet]
@@ -30,13 +37,13 @@ public class ProductAdminController : Controller
         searchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
         status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
 
-        var query = _context.Products
+        var query = _ownership.ScopeProducts(_context.Products
             .Include(product => product.Category)
             .Include(product => product.Store)
             .Include(product => product.ProductSkus)
             .Include(product => product.ProductImage)
             .AsNoTracking()
-            .AsQueryable();
+            .AsQueryable());
 
         if (searchTerm is not null)
         {
@@ -117,11 +124,12 @@ public class ProductAdminController : Controller
     {
         Normalize(model);
 
-        var store = await _context.Stores
-            .AsNoTracking()
-            .Where(item => item.Status == "ACTIVE")
-            .OrderBy(item => item.StoreId)
-            .FirstOrDefaultAsync();
+        var store = _currentUser.IsAdmin
+            ? await _context.Stores.AsNoTracking()
+                .Where(item => item.Status == "ACTIVE")
+                .OrderBy(item => item.StoreId)
+                .FirstOrDefaultAsync()
+            : await _ownership.GetActiveOwnedStoreAsync();
 
         await ValidateFormAsync(model, store?.StoreId);
 
@@ -209,7 +217,7 @@ public class ProductAdminController : Controller
             return NotFound();
         }
 
-        var product = await _context.Products
+        var product = await _ownership.ScopeProducts(_context.Products)
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.ProductId == id.Value);
 
@@ -271,7 +279,7 @@ public class ProductAdminController : Controller
 
         Normalize(model);
 
-        var product = await _context.Products
+        var product = await _ownership.ScopeProducts(_context.Products)
             .FirstOrDefaultAsync(item => item.ProductId == id);
 
         if (product is null)
@@ -384,12 +392,12 @@ public class ProductAdminController : Controller
             return NotFound();
         }
 
-        var product = await _context.Products
+        var product = await _ownership.ScopeProducts(_context.Products
             .Include(item => item.Category)
             .Include(item => item.Store)
             .Include(item => item.ProductSkus)
             .Include(item => item.ProductImage)
-            .AsNoTracking()
+            .AsNoTracking())
             .FirstOrDefaultAsync(item => item.ProductId == id.Value);
 
         if (product is null)
@@ -447,7 +455,7 @@ public class ProductAdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStatus(long id)
     {
-        var product = await _context.Products
+        var product = await _ownership.ScopeProducts(_context.Products)
             .FirstOrDefaultAsync(item => item.ProductId == id);
 
         if (product is null)

@@ -635,3 +635,198 @@ SELECT TOP (20) * FROM dbo.vw_product_catalog ORDER BY product_id;
 SELECT TOP (20) * FROM dbo.vw_best_selling_products ORDER BY total_quantity_sold DESC;
 SELECT TOP (20) * FROM dbo.vw_revenue_by_month ORDER BY revenue_year,revenue_month;
 GO
+
+/* ============================================================================
+   9. MARKETPLACE UPGRADE - IDEMPOTENT P0 SCHEMA
+   ============================================================================ */
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.store_orders', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.store_orders
+        (
+            store_order_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_store_orders PRIMARY KEY,
+            order_id BIGINT NOT NULL,
+            store_id BIGINT NOT NULL,
+            store_order_code VARCHAR(80) NOT NULL,
+            subtotal DECIMAL(18,2) NOT NULL,
+            discount_amount DECIMAL(18,2) NOT NULL CONSTRAINT DF_store_orders_discount DEFAULT(0),
+            shipping_fee DECIMAL(18,2) NOT NULL,
+            total_amount DECIMAL(18,2) NOT NULL,
+            status VARCHAR(30) NOT NULL CONSTRAINT DF_store_orders_status DEFAULT('PENDING'),
+            created_at DATETIME2 NOT NULL CONSTRAINT DF_store_orders_created DEFAULT(SYSUTCDATETIME()),
+            updated_at DATETIME2 NULL,
+            row_version ROWVERSION NOT NULL,
+            CONSTRAINT UQ_store_orders_code UNIQUE(store_order_code),
+            CONSTRAINT UQ_store_orders_order_store UNIQUE(order_id,store_id),
+            CONSTRAINT FK_store_orders_orders FOREIGN KEY(order_id) REFERENCES dbo.orders(order_id),
+            CONSTRAINT FK_store_orders_stores FOREIGN KEY(store_id) REFERENCES dbo.stores(store_id),
+            CONSTRAINT CK_store_orders_money CHECK(subtotal>=0 AND discount_amount>=0 AND shipping_fee>=0 AND total_amount>=0),
+            CONSTRAINT CK_store_orders_status CHECK(status IN('PENDING','CONFIRMED','PROCESSING','SHIPPING','DELIVERED','CANCELLED'))
+        );
+    END;
+
+    IF COL_LENGTH(N'dbo.order_items', N'store_order_id') IS NULL
+        ALTER TABLE dbo.order_items ADD store_order_id BIGINT NULL;
+    IF COL_LENGTH(N'dbo.order_items', N'store_name_snapshot') IS NULL
+        ALTER TABLE dbo.order_items ADD store_name_snapshot NVARCHAR(200) NULL;
+
+    INSERT dbo.store_orders(order_id,store_id,store_order_code,subtotal,discount_amount,shipping_fee,total_amount,status,created_at,updated_at)
+    SELECT o.order_id,p.store_id,
+           CONCAT(o.order_code,'-',p.store_id),
+           SUM(oi.unit_price*oi.quantity),0,
+           CASE WHEN ROW_NUMBER() OVER(PARTITION BY o.order_id ORDER BY p.store_id)=1 THEN o.shipping_fee ELSE 0 END,
+           SUM(oi.unit_price*oi.quantity)+CASE WHEN ROW_NUMBER() OVER(PARTITION BY o.order_id ORDER BY p.store_id)=1 THEN o.shipping_fee ELSE 0 END,
+           o.order_status,o.created_at,o.updated_at
+    FROM dbo.orders o
+    JOIN dbo.order_items oi ON oi.order_id=o.order_id
+    JOIN dbo.product_skus sku ON sku.sku_id=oi.sku_id
+    JOIN dbo.products p ON p.product_id=sku.product_id
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.store_orders so WHERE so.order_id=o.order_id AND so.store_id=p.store_id)
+    GROUP BY o.order_id,o.order_code,o.shipping_fee,o.order_status,o.created_at,o.updated_at,p.store_id;
+
+    UPDATE oi
+    SET store_order_id=so.store_order_id,
+        store_name_snapshot=COALESCE(oi.store_name_snapshot,s.store_name)
+    FROM dbo.order_items oi
+    JOIN dbo.product_skus sku ON sku.sku_id=oi.sku_id
+    JOIN dbo.products p ON p.product_id=sku.product_id
+    JOIN dbo.stores s ON s.store_id=p.store_id
+    JOIN dbo.store_orders so ON so.order_id=oi.order_id AND so.store_id=p.store_id
+    WHERE oi.store_order_id IS NULL OR oi.store_name_snapshot IS NULL;
+
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_order_items_store_orders')
+        ALTER TABLE dbo.order_items WITH CHECK ADD CONSTRAINT FK_order_items_store_orders
+        FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id);
+
+    IF OBJECT_ID(N'dbo.shipping_providers', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.shipping_providers
+        (
+            provider_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_providers PRIMARY KEY,
+            owner_user_id BIGINT NOT NULL,
+            provider_name NVARCHAR(200) NOT NULL,
+            slug VARCHAR(220) NOT NULL CONSTRAINT UQ_shipping_providers_slug UNIQUE,
+            phone VARCHAR(30) NULL,email VARCHAR(255) NULL,description NVARCHAR(MAX) NULL,
+            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_providers_status DEFAULT('PENDING'),
+            created_at DATETIME2 NOT NULL CONSTRAINT DF_shipping_providers_created DEFAULT(SYSUTCDATETIME()),
+            updated_at DATETIME2 NULL,
+            CONSTRAINT FK_shipping_providers_users FOREIGN KEY(owner_user_id) REFERENCES dbo.users(user_id),
+            CONSTRAINT CK_shipping_providers_status CHECK(status IN('PENDING','ACTIVE','SUSPENDED'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.shipping_services', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.shipping_services
+        (
+            service_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_services PRIMARY KEY,
+            provider_id BIGINT NOT NULL,service_code VARCHAR(80) NOT NULL,service_name NVARCHAR(200) NOT NULL,
+            base_fee DECIMAL(18,2) NOT NULL,estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,
+            max_weight DECIMAL(18,3) NULL,status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_services_status DEFAULT('ACTIVE'),
+            CONSTRAINT UQ_shipping_services_code UNIQUE(provider_id,service_code),
+            CONSTRAINT FK_shipping_services_providers FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
+            CONSTRAINT CK_shipping_services_values CHECK(base_fee>=0 AND estimated_min_days>=0 AND estimated_max_days>=estimated_min_days),
+            CONSTRAINT CK_shipping_services_status CHECK(status IN('ACTIVE','INACTIVE'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.shipping_rate_rules', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.shipping_rate_rules
+        (
+            rule_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_rate_rules PRIMARY KEY,
+            service_id BIGINT NOT NULL,origin_area NVARCHAR(120) NOT NULL,destination_area NVARCHAR(120) NOT NULL,
+            min_weight DECIMAL(18,3) NOT NULL,max_weight DECIMAL(18,3) NOT NULL,fee DECIMAL(18,2) NOT NULL,
+            extra_fee_per_kg DECIMAL(18,2) NOT NULL CONSTRAINT DF_shipping_rate_extra DEFAULT(0),
+            supports_cod BIT NOT NULL CONSTRAINT DF_shipping_rate_cod DEFAULT(1),
+            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_rate_status DEFAULT('ACTIVE'),
+            CONSTRAINT FK_shipping_rate_rules_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
+            CONSTRAINT CK_shipping_rate_values CHECK(min_weight>=0 AND max_weight>=min_weight AND fee>=0 AND extra_fee_per_kg>=0)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.shipping_quotes', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.shipping_quotes
+        (
+            quote_id UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_shipping_quotes PRIMARY KEY,
+            provider_id BIGINT NOT NULL,service_id BIGINT NOT NULL,fee DECIMAL(18,2) NOT NULL,
+            estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,expires_at DATETIME2 NOT NULL,
+            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_quotes_status DEFAULT('ACTIVE'),selected_at DATETIME2 NULL,
+            CONSTRAINT FK_shipping_quotes_provider FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
+            CONSTRAINT FK_shipping_quotes_service FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
+            CONSTRAINT CK_shipping_quotes_fee CHECK(fee>=0),
+            CONSTRAINT CK_shipping_quotes_status CHECK(status IN('ACTIVE','SELECTED','EXPIRED','CANCELLED'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.shipments', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.shipments
+        (
+            shipment_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipments PRIMARY KEY,
+            store_order_id BIGINT NOT NULL,provider_id BIGINT NOT NULL,service_id BIGINT NOT NULL,
+            shipping_fee DECIMAL(18,2) NOT NULL,tracking_code VARCHAR(100) NOT NULL CONSTRAINT UQ_shipments_tracking UNIQUE,
+            status VARCHAR(30) NOT NULL CONSTRAINT DF_shipments_status DEFAULT('CREATED'),
+            pickup_address NVARCHAR(500) NOT NULL,delivery_address NVARCHAR(500) NOT NULL,
+            estimated_delivery_at DATETIME2 NULL,picked_up_at DATETIME2 NULL,delivered_at DATETIME2 NULL,
+            created_at DATETIME2 NOT NULL CONSTRAINT DF_shipments_created DEFAULT(SYSUTCDATETIME()),updated_at DATETIME2 NULL,
+            row_version ROWVERSION NOT NULL,
+            CONSTRAINT FK_shipments_store_orders FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id),
+            CONSTRAINT FK_shipments_provider FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
+            CONSTRAINT FK_shipments_service FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
+            CONSTRAINT CK_shipments_fee CHECK(shipping_fee>=0),
+            CONSTRAINT CK_shipments_status CHECK(status IN('CREATED','READY_FOR_PICKUP','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.order_status_histories', N'U') IS NULL
+        CREATE TABLE dbo.order_status_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,store_order_id BIGINT NOT NULL,old_status VARCHAR(30) NULL,new_status VARCHAR(30) NOT NULL,changed_by_user_id BIGINT NOT NULL,note NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
+    IF OBJECT_ID(N'dbo.shipment_status_histories', N'U') IS NULL
+        CREATE TABLE dbo.shipment_status_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,shipment_id BIGINT NOT NULL,old_status VARCHAR(30) NULL,new_status VARCHAR(30) NOT NULL,changed_by_user_id BIGINT NOT NULL,note NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(shipment_id) REFERENCES dbo.shipments(shipment_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
+    IF OBJECT_ID(N'dbo.product_price_histories', N'U') IS NULL
+        CREATE TABLE dbo.product_price_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,sku_id BIGINT NOT NULL,old_price DECIMAL(18,2) NOT NULL,new_price DECIMAL(18,2) NOT NULL,old_sale_price DECIMAL(18,2) NULL,new_sale_price DECIMAL(18,2) NULL,changed_by_user_id BIGINT NOT NULL,reason NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(sku_id) REFERENCES dbo.product_skus(sku_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
+    IF OBJECT_ID(N'dbo.audit_logs', N'U') IS NULL
+        CREATE TABLE dbo.audit_logs(audit_id BIGINT IDENTITY(1,1) PRIMARY KEY,actor_user_id BIGINT NULL,action VARCHAR(100) NOT NULL,entity_name VARCHAR(100) NOT NULL,entity_id VARCHAR(100) NULL,before_json NVARCHAR(MAX) NULL,after_json NVARCHAR(MAX) NULL,ip_address VARCHAR(64) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(actor_user_id) REFERENCES dbo.users(user_id));
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.users WHERE email='carrier@marketplace.vn')
+        INSERT dbo.users(full_name,email,phone,password_hash,role,status)
+        VALUES(N'Đơn vị vận chuyển Marketplace','carrier@marketplace.vn','0900000099','demo_hash_carrier','CARRIER','ACTIVE');
+    DECLARE @CarrierOwnerId BIGINT=(SELECT user_id FROM dbo.users WHERE email='carrier@marketplace.vn');
+    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_providers WHERE slug='giao-hang-marketplace')
+        INSERT dbo.shipping_providers(owner_user_id,provider_name,slug,phone,email,description,status)
+        VALUES(@CarrierOwnerId,N'Giao Hàng Marketplace','giao-hang-marketplace','0900000099','carrier@marketplace.vn',N'Đơn vị giao nhận nội bộ dùng cho luồng báo giá demo.','ACTIVE');
+    DECLARE @MarketplaceProviderId BIGINT=(SELECT provider_id FROM dbo.shipping_providers WHERE slug='giao-hang-marketplace');
+    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='STANDARD')
+        INSERT dbo.shipping_services(provider_id,service_code,service_name,base_fee,estimated_min_days,estimated_max_days,max_weight,status)
+        VALUES(@MarketplaceProviderId,'STANDARD',N'Giao hàng tiêu chuẩn',30000,2,5,50,'ACTIVE');
+    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='EXPRESS')
+        INSERT dbo.shipping_services(provider_id,service_code,service_name,base_fee,estimated_min_days,estimated_max_days,max_weight,status)
+        VALUES(@MarketplaceProviderId,'EXPRESS',N'Giao hàng nhanh',55000,1,2,30,'ACTIVE');
+    DECLARE @StandardServiceId BIGINT=(SELECT service_id FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='STANDARD');
+    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_rate_rules WHERE service_id=@StandardServiceId AND origin_area=N'TOÀN QUỐC' AND destination_area=N'TOÀN QUỐC')
+        INSERT dbo.shipping_rate_rules(service_id,origin_area,destination_area,min_weight,max_weight,fee,extra_fee_per_kg,supports_cod,status)
+        VALUES(@StandardServiceId,N'TOÀN QUỐC',N'TOÀN QUỐC',0,50,30000,5000,1,'ACTIVE');
+
+    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_store_orders_store_status')
+        CREATE INDEX IX_store_orders_store_status ON dbo.store_orders(store_id,status,created_at DESC);
+    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_shipments_provider_status')
+        CREATE INDEX IX_shipments_provider_status ON dbo.shipments(provider_id,status,created_at DESC);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+IF EXISTS(SELECT 1 FROM dbo.order_items WHERE store_order_id IS NULL)
+    THROW 50101,N'Verification failed: order item without store order.',1;
+SELECT N'store_orders' entity,COUNT(*) row_count FROM dbo.store_orders
+UNION ALL SELECT N'shipping_providers',COUNT(*) FROM dbo.shipping_providers
+UNION ALL SELECT N'shipments',COUNT(*) FROM dbo.shipments;
+GO

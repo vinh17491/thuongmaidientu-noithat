@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ThuongMaiDienTu.Data;
+using ThuongMaiDienTu.Services;
 using ThuongMaiDienTu.ViewModels;
 
 namespace ThuongMaiDienTu.Controllers;
@@ -11,10 +12,17 @@ public class ReviewAdminController : Controller
 {
     private static readonly string[] ValidStatuses = ["VISIBLE", "HIDDEN"];
     private readonly ThuongMaiDienTuDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IStoreOwnershipService _ownership;
 
-    public ReviewAdminController(ThuongMaiDienTuDbContext context)
+    public ReviewAdminController(
+        ThuongMaiDienTuDbContext context,
+        ICurrentUserService currentUser,
+        IStoreOwnershipService ownership)
     {
         _context = context;
+        _currentUser = currentUser;
+        _ownership = ownership;
     }
 
     [HttpGet]
@@ -29,7 +37,7 @@ public class ReviewAdminController : Controller
             status = null;
         }
 
-        var query = _context.Reviews.AsNoTracking();
+        var query = _ownership.ScopeReviews(_context.Reviews.AsNoTracking());
         if (status is not null)
         {
             query = query.Where(item => item.Status == status);
@@ -62,7 +70,12 @@ public class ReviewAdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStatus(long id, string? statusFilter)
     {
-        var review = await _context.Reviews
+        if (!_currentUser.IsAdmin)
+        {
+            return Forbid();
+        }
+
+        var review = await _ownership.ScopeReviews(_context.Reviews)
             .SingleOrDefaultAsync(item => item.ReviewId == id);
 
         if (review is null)

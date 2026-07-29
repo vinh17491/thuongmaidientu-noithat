@@ -135,9 +135,6 @@ public class ProductsController : Controller
             .Include(sku => sku.Product)
                 .ThenInclude(product => product.ProductImage)
             .Where(sku =>
-                sku.SkuId == _context.ProductSkus
-                    .Where(other => other.ProductId == sku.ProductId)
-                    .Min(other => other.SkuId) &&
                 sku.Status == "ACTIVE" &&
                 sku.Product.Status == "ACTIVE" &&
                 sku.Product.Category.Status == "ACTIVE" &&

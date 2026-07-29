@@ -17,6 +17,13 @@ public partial class OrderItem
     [Column("order_id")]
     public long OrderId { get; set; }
 
+    [Column("store_order_id")]
+    public long? StoreOrderId { get; set; }
+
+    [Column("store_name_snapshot")]
+    [StringLength(200)]
+    public string? StoreNameSnapshot { get; set; }
+
     [Column("sku_id")]
     public long SkuId { get; set; }
 
@@ -41,6 +48,8 @@ public partial class OrderItem
     [ForeignKey("OrderId")]
     [InverseProperty("OrderItems")]
     public virtual Order Order { get; set; } = null!;
+
+    public virtual StoreOrder? StoreOrder { get; set; }
 
     [InverseProperty("OrderItem")]
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();

@@ -12,10 +12,17 @@ namespace ThuongMaiDienTu.Controllers;
 public class OrderAdminController : Controller
 {
     private readonly ThuongMaiDienTuDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IStoreOwnershipService _ownership;
 
-    public OrderAdminController(ThuongMaiDienTuDbContext context)
+    public OrderAdminController(
+        ThuongMaiDienTuDbContext context,
+        ICurrentUserService currentUser,
+        IStoreOwnershipService ownership)
     {
         _context = context;
+        _currentUser = currentUser;
+        _ownership = ownership;
     }
 
     [HttpGet]
@@ -30,12 +37,13 @@ public class OrderAdminController : Controller
             status = null;
         }
 
-        var query = _context.Orders.AsNoTracking();
+        var query = _ownership.ScopeOrders(_context.Orders.AsNoTracking());
         if (status is not null)
         {
             query = query.Where(item => item.OrderStatus == status);
         }
 
+        var sellerUserId = _currentUser.UserId;
         var model = await query
             .OrderByDescending(item => item.CreatedAt)
             .ThenByDescending(item => item.OrderId)
@@ -47,8 +55,20 @@ public class OrderAdminController : Controller
                 Status = item.OrderStatus,
                 PaymentMethod = item.PaymentMethod,
                 PaymentStatus = item.PaymentStatus,
-                TotalAmount = item.TotalAmount,
-                TotalQuantity = item.OrderItems.Sum(orderItem => orderItem.Quantity),
+                TotalAmount = _currentUser.IsAdmin
+                    ? item.TotalAmount
+                    : item.OrderItems
+                        .Where(orderItem =>
+                            sellerUserId.HasValue &&
+                            orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value)
+                        .Sum(orderItem => orderItem.LineTotal ??
+                            orderItem.UnitPrice * orderItem.Quantity),
+                TotalQuantity = item.OrderItems
+                    .Where(orderItem =>
+                        _currentUser.IsAdmin ||
+                        (sellerUserId.HasValue &&
+                         orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value))
+                    .Sum(orderItem => orderItem.Quantity),
                 CustomerName = item.User.FullName
             })
             .ToListAsync();
@@ -60,7 +80,8 @@ public class OrderAdminController : Controller
     [HttpGet]
     public async Task<IActionResult> Details(long id)
     {
-        var model = await _context.Orders
+        var sellerUserId = _currentUser.UserId;
+        var model = await _ownership.ScopeOrders(_context.Orders)
             .AsNoTracking()
             .Where(item => item.OrderId == id)
             .Select(item => new OrderDetailsViewModel
@@ -77,13 +98,41 @@ public class OrderAdminController : Controller
                 Status = item.OrderStatus,
                 PaymentMethod = item.PaymentMethod,
                 PaymentStatus = item.PaymentStatus,
-                Subtotal = item.Subtotal,
-                DiscountAmount = item.DiscountAmount,
-                ShippingFee = item.ShippingFee,
-                TotalAmount = item.TotalAmount,
-                AllowedNextStatuses = OrderWorkflowHelper
-                    .GetNextStatuses(item.OrderStatus),
+                Subtotal = _currentUser.IsAdmin
+                    ? item.Subtotal
+                    : item.OrderItems
+                        .Where(orderItem =>
+                            sellerUserId.HasValue &&
+                            orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value)
+                        .Sum(orderItem => orderItem.LineTotal ??
+                            orderItem.UnitPrice * orderItem.Quantity),
+                DiscountAmount = _currentUser.IsAdmin ? item.DiscountAmount : 0,
+                ShippingFee = _currentUser.IsAdmin
+                    ? item.ShippingFee
+                    : item.OrderItems
+                        .Where(orderItem =>
+                            sellerUserId.HasValue &&
+                            orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value &&
+                            orderItem.StoreOrder != null)
+                        .Select(orderItem => orderItem.StoreOrder!.ShippingFee)
+                        .Distinct()
+                        .Sum(),
+                TotalAmount = _currentUser.IsAdmin
+                    ? item.TotalAmount
+                    : item.OrderItems
+                        .Where(orderItem =>
+                            sellerUserId.HasValue &&
+                            orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value)
+                        .Sum(orderItem => orderItem.LineTotal ??
+                            orderItem.UnitPrice * orderItem.Quantity),
+                AllowedNextStatuses = _currentUser.IsAdmin
+                    ? OrderWorkflowHelper.GetNextStatuses(item.OrderStatus)
+                    : Array.Empty<string>(),
                 Items = item.OrderItems
+                    .Where(orderItem =>
+                        _currentUser.IsAdmin ||
+                        (sellerUserId.HasValue &&
+                         orderItem.Sku.Product.Store.OwnerUserId == sellerUserId.Value))
                     .OrderBy(orderItem => orderItem.OrderItemId)
                     .Select(orderItem => new OrderDetailsItemViewModel
                     {
@@ -105,6 +154,11 @@ public class OrderAdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(long id, UpdateOrderStatusViewModel model)
     {
+        if (!_currentUser.IsAdmin)
+        {
+            return Forbid();
+        }
+
         if (id != model.OrderId)
         {
             return BadRequest();
@@ -123,9 +177,9 @@ public class OrderAdminController : Controller
 
         try
         {
-            var order = await _context.Orders
+            var order = await _ownership.ScopeOrders(_context.Orders
                 .Include(item => item.OrderItems)
-                    .ThenInclude(item => item.Sku)
+                    .ThenInclude(item => item.Sku))
                 .SingleOrDefaultAsync(item => item.OrderId == id);
 
             if (order is null)

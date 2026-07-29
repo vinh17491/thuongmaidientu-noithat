@@ -12,16 +12,31 @@ public class DashboardController : Controller
 {
     private const int LowStockThreshold = 5;
     private readonly ThuongMaiDienTuDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IStoreOwnershipService _ownership;
 
-    public DashboardController(ThuongMaiDienTuDbContext context)
+    public DashboardController(
+        ThuongMaiDienTuDbContext context,
+        ICurrentUserService currentUser,
+        IStoreOwnershipService ownership)
     {
         _context = context;
+        _currentUser = currentUser;
+        _ownership = ownership;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var statusCounts = await _context.Orders
+        var orders = _ownership.ScopeOrders(_context.Orders.AsNoTracking());
+        var products = _ownership.ScopeProducts(_context.Products.AsNoTracking());
+        var sellerUserId = _currentUser.UserId;
+        var skus = _context.ProductSkus.AsNoTracking().Where(item =>
+            _currentUser.IsAdmin ||
+            (sellerUserId.HasValue &&
+             item.Product.Store.OwnerUserId == sellerUserId.Value));
+
+        var statusCounts = await orders
             .AsNoTracking()
             .GroupBy(item => item.OrderStatus)
             .Select(group => new
@@ -33,15 +48,21 @@ public class DashboardController : Controller
 
         var model = new DashboardViewModel
         {
-            TotalProducts = await _context.Products.AsNoTracking().CountAsync(),
-            TotalCustomers = await _context.Users
-                .AsNoTracking()
-                .CountAsync(item => item.Role == "CUSTOMER"),
-            TotalOrders = await _context.Orders.AsNoTracking().CountAsync(),
-            TotalRevenue = await _context.Orders
-                .AsNoTracking()
+            TotalProducts = await products.CountAsync(),
+            TotalCustomers = _currentUser.IsAdmin
+                ? await _context.Users.AsNoTracking()
+                    .CountAsync(item => item.Role == "CUSTOMER")
+                : await orders.Select(item => item.UserId).Distinct().CountAsync(),
+            TotalOrders = await orders.CountAsync(),
+            TotalRevenue = await orders
                 .Where(item => item.OrderStatus == OrderWorkflowHelper.Delivered)
-                .SumAsync(item => (decimal?)item.TotalAmount) ?? 0m,
+                .SelectMany(item => item.OrderItems)
+                .Where(item =>
+                    _currentUser.IsAdmin ||
+                    (sellerUserId.HasValue &&
+                     item.Sku.Product.Store.OwnerUserId == sellerUserId.Value))
+                .SumAsync(item => (decimal?)(item.LineTotal ??
+                    item.UnitPrice * item.Quantity)) ?? 0m,
             OrdersByStatus = OrderWorkflowHelper.OrderStatuses
                 .Select(status => new DashboardOrderStatusViewModel
                 {
@@ -49,38 +70,57 @@ public class DashboardController : Controller
                     Count = statusCounts.GetValueOrDefault(status)
                 })
                 .ToList(),
-            TopSellingProducts = await _context.VwBestSellingProducts
+            TopSellingProducts = await _context.OrderItems
                 .AsNoTracking()
+                .Where(item =>
+                    item.Order.OrderStatus == OrderWorkflowHelper.Delivered &&
+                    (_currentUser.IsAdmin ||
+                     (sellerUserId.HasValue &&
+                      item.Sku.Product.Store.OwnerUserId == sellerUserId.Value)))
+                .GroupBy(item => new
+                {
+                    item.SkuId,
+                    item.ProductName
+                })
+                .Select(group => new DashboardTopProductViewModel
+                {
+                    SkuId = group.Key.SkuId,
+                    ProductName = group.Key.ProductName,
+                    TotalQuantitySold = group.Sum(item => item.Quantity),
+                    TotalRevenue = group.Sum(item =>
+                        item.LineTotal ?? item.UnitPrice * item.Quantity)
+                })
                 .OrderByDescending(item => item.TotalQuantitySold)
                 .ThenByDescending(item => item.TotalRevenue)
                 .Take(5)
-                .Select(item => new DashboardTopProductViewModel
-                {
-                    SkuId = item.SkuId,
-                    ProductName = item.ProductName,
-                    TotalQuantitySold = item.TotalQuantitySold ?? 0,
-                    TotalRevenue = item.TotalRevenue ?? 0m
-                })
                 .ToListAsync(),
-            RevenueByMonth = await _context.VwRevenueByMonths
+            RevenueByMonth = await orders
                 .AsNoTracking()
-                .OrderByDescending(item => item.RevenueYear)
-                .ThenByDescending(item => item.RevenueMonth)
-                .Take(12)
-                .Select(item => new DashboardRevenueMonthViewModel
-                {
-                    Year = item.RevenueYear ?? 0,
-                    Month = item.RevenueMonth ?? 0,
-                    TotalOrders = item.TotalOrders ?? 0,
-                    TotalRevenue = item.TotalRevenue ?? 0m
-                })
-                .ToListAsync(),
-            LowStockProducts = await _context.ProductSkus
-                .AsNoTracking()
+                .Where(item => item.OrderStatus == OrderWorkflowHelper.Delivered)
+                .SelectMany(item => item.OrderItems)
                 .Where(item =>
-                    item.SkuId == _context.ProductSkus
-                        .Where(other => other.ProductId == item.ProductId)
-                        .Min(other => other.SkuId) &&
+                    _currentUser.IsAdmin ||
+                    (sellerUserId.HasValue &&
+                     item.Sku.Product.Store.OwnerUserId == sellerUserId.Value))
+                .GroupBy(item => new
+                {
+                    item.Order.CreatedAt.Year,
+                    item.Order.CreatedAt.Month
+                })
+                .Select(group => new DashboardRevenueMonthViewModel
+                {
+                    Year = group.Key.Year,
+                    Month = group.Key.Month,
+                    TotalOrders = group.Select(item => item.OrderId).Distinct().Count(),
+                    TotalRevenue = group.Sum(item =>
+                        item.LineTotal ?? item.UnitPrice * item.Quantity)
+                })
+                .OrderByDescending(item => item.Year)
+                .ThenByDescending(item => item.Month)
+                .Take(12)
+                .ToListAsync(),
+            LowStockProducts = await skus
+                .Where(item =>
                     item.Status == "ACTIVE" &&
                     item.Product.Status == "ACTIVE" &&
                     item.StockQuantity <= LowStockThreshold)

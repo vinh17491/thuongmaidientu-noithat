@@ -19,6 +19,12 @@ public partial class ThuongMaiDienTuDbContext : DbContext
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
+    public virtual DbSet<StoreOrder> StoreOrders { get; set; }
+    public virtual DbSet<ShippingProvider> ShippingProviders { get; set; }
+    public virtual DbSet<ShippingService> ShippingServices { get; set; }
+    public virtual DbSet<ShippingRateRule> ShippingRateRules { get; set; }
+    public virtual DbSet<ShippingQuote> ShippingQuotes { get; set; }
+    public virtual DbSet<Shipment> Shipments { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
@@ -92,6 +98,36 @@ public partial class ThuongMaiDienTuDbContext : DbContext
             entity.HasOne(d => d.Sku).WithMany(p => p.OrderItems)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_order_items_skus");
+
+            entity.HasOne(d => d.StoreOrder).WithMany(p => p.OrderItems)
+                .HasForeignKey(d => d.StoreOrderId)
+                .HasConstraintName("FK_order_items_store_orders");
+        });
+
+        modelBuilder.Entity<StoreOrder>(entity =>
+        {
+            entity.HasOne(e => e.Order).WithMany()
+                .HasForeignKey(e => e.OrderId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Store).WithMany()
+                .HasForeignKey(e => e.StoreId).OnDelete(DeleteBehavior.NoAction);
+        });
+        modelBuilder.Entity<ShippingProvider>(entity =>
+            entity.HasOne(e => e.OwnerUser).WithMany()
+                .HasForeignKey(e => e.OwnerUserId).OnDelete(DeleteBehavior.NoAction));
+        modelBuilder.Entity<ShippingService>(entity =>
+            entity.HasOne(e => e.Provider).WithMany(e => e.Services)
+                .HasForeignKey(e => e.ProviderId).OnDelete(DeleteBehavior.NoAction));
+        modelBuilder.Entity<ShippingRateRule>(entity =>
+            entity.HasOne(e => e.Service).WithMany(e => e.RateRules)
+                .HasForeignKey(e => e.ServiceId).OnDelete(DeleteBehavior.NoAction));
+        modelBuilder.Entity<Shipment>(entity =>
+        {
+            entity.HasOne(e => e.StoreOrder).WithMany(e => e.Shipments)
+                .HasForeignKey(e => e.StoreOrderId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Provider).WithMany()
+                .HasForeignKey(e => e.ProviderId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Service).WithMany()
+                .HasForeignKey(e => e.ServiceId).OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Product>(entity =>

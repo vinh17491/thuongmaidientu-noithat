@@ -6,7 +6,7 @@ namespace ThuongMaiDienTu.Services;
 
 public static partial class DevelopmentUserInitializer
 {
-    // Chỉ dùng cho tài khoản ADMIN/SELLER mẫu có password_hash dạng placeholder.
+    // Chỉ thay placeholder của tài khoản demo trong môi trường Development.
     public const string DemoPassword = "Demo@123";
 
     public static async Task InitializeAsync(IServiceProvider services)
@@ -18,7 +18,12 @@ public static partial class DevelopmentUserInitializer
             .CreateLogger(nameof(DevelopmentUserInitializer));
 
         var users = await context.Users
-            .Where(user => user.Role == "ADMIN" || user.Role == "SELLER")
+            .Where(user =>
+                (user.Role == "ADMIN" ||
+                 user.Role == "SELLER" ||
+                 user.Role == "CUSTOMER" ||
+                 user.Role == "CARRIER") &&
+                user.PasswordHash.StartsWith("demo_hash_"))
             .ToListAsync();
 
         var updatedEmails = new List<string>();
@@ -39,7 +44,7 @@ public static partial class DevelopmentUserInitializer
         {
             await context.SaveChangesAsync();
             logger.LogInformation(
-                "Đã khởi tạo BCrypt cho tài khoản quản trị mẫu: {Emails}.",
+                "Đã khởi tạo BCrypt cho tài khoản demo: {Emails}.",
                 string.Join(", ", updatedEmails));
         }
 

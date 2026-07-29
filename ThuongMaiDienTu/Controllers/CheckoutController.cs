@@ -14,10 +14,14 @@ namespace ThuongMaiDienTu.Controllers;
 public class CheckoutController : Controller
 {
     private readonly ThuongMaiDienTuDbContext _context;
+    private readonly IShippingQuoteService _shippingQuotes;
 
-    public CheckoutController(ThuongMaiDienTuDbContext context)
+    public CheckoutController(
+        ThuongMaiDienTuDbContext context,
+        IShippingQuoteService shippingQuotes)
     {
         _context = context;
+        _shippingQuotes = shippingQuotes;
     }
 
     [HttpGet]
@@ -95,9 +99,26 @@ public class CheckoutController : Controller
             }
 
             var now = DateTime.Now;
-            const decimal shippingFee = 0m;
             const decimal discountAmount = 0m;
             var subtotal = prepared.Items.Sum(item => item.UnitPrice * item.CartItem.Quantity);
+            var storeGroups = prepared.Items
+                .GroupBy(item => item.CartItem.Sku.Product.StoreId)
+                .ToList();
+            var quotes = new Dictionary<long, ShippingSelection>();
+            foreach (var group in storeGroups)
+            {
+                var quote = await _shippingQuotes.GetBestInternalQuoteAsync(
+                    group.Key, input.ShippingAddress);
+                if (quote is null)
+                {
+                    throw new CheckoutValidationException(
+                        "Hiện chưa có dịch vụ vận chuyển phù hợp cho một cửa hàng trong giỏ.");
+                }
+
+                quotes[group.Key] = quote;
+            }
+
+            var shippingFee = quotes.Values.Sum(quote => quote.Fee);
 
             var order = new Order
             {
@@ -120,18 +141,56 @@ public class CheckoutController : Controller
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
-            foreach (var item in prepared.Items)
+            foreach (var group in storeGroups)
             {
-                order.OrderItems.Add(new OrderItem
+                var quote = quotes[group.Key];
+                var store = group.First().CartItem.Sku.Product.Store;
+                var storeSubtotal = group.Sum(item =>
+                    item.UnitPrice * item.CartItem.Quantity);
+                var storeOrder = new StoreOrder
                 {
-                    SkuId = item.CartItem.SkuId,
-                    ProductName = item.CartItem.Sku.Product.ProductName,
-                    SkuCode = item.CartItem.Sku.SkuCode,
-                    UnitPrice = item.UnitPrice,
-                    Quantity = item.CartItem.Quantity
-                });
+                    OrderId = order.OrderId,
+                    StoreId = group.Key,
+                    StoreOrderCode = $"{order.OrderCode}-{group.Key}",
+                    Subtotal = storeSubtotal,
+                    DiscountAmount = 0,
+                    ShippingFee = quote.Fee,
+                    TotalAmount = storeSubtotal + quote.Fee,
+                    Status = OrderWorkflowHelper.Pending,
+                    CreatedAt = now
+                };
+                _context.StoreOrders.Add(storeOrder);
+                await _context.SaveChangesAsync();
 
-                item.CartItem.Sku.StockQuantity -= item.CartItem.Quantity;
+                foreach (var item in group)
+                {
+                    order.OrderItems.Add(new OrderItem
+                    {
+                        StoreOrderId = storeOrder.StoreOrderId,
+                        StoreNameSnapshot = store.StoreName,
+                        SkuId = item.CartItem.SkuId,
+                        ProductName = item.CartItem.Sku.Product.ProductName,
+                        SkuCode = item.CartItem.Sku.SkuCode,
+                        UnitPrice = item.UnitPrice,
+                        Quantity = item.CartItem.Quantity
+                    });
+
+                    item.CartItem.Sku.StockQuantity -= item.CartItem.Quantity;
+                }
+
+                _context.Shipments.Add(new Shipment
+                {
+                    StoreOrderId = storeOrder.StoreOrderId,
+                    ProviderId = quote.ProviderId,
+                    ServiceId = quote.ServiceId,
+                    ShippingFee = quote.Fee,
+                    TrackingCode = $"VC-{Guid.NewGuid():N}".ToUpperInvariant(),
+                    Status = "CREATED",
+                    PickupAddress = store.StoreName,
+                    DeliveryAddress = input.ShippingAddress,
+                    EstimatedDeliveryAt = now.AddDays(quote.EstimatedMaxDays),
+                    CreatedAt = now
+                });
             }
 
             _context.CartItems.RemoveRange(cart.CartItems);
@@ -234,7 +293,18 @@ public class CheckoutController : Controller
             })
             .ToList();
         input.Subtotal = input.Items.Sum(item => item.LineTotal);
-        input.ShippingFee = 0m;
+        var storeIds = prepared.Items
+            .Select(item => item.CartItem.Sku.Product.StoreId)
+            .Distinct()
+            .ToList();
+        decimal shippingFee = 0;
+        foreach (var storeId in storeIds)
+        {
+            var quote = await _shippingQuotes.GetBestInternalQuoteAsync(
+                storeId, input.ShippingAddress ?? "Chưa nhập địa chỉ");
+            shippingFee += quote?.Fee ?? 0;
+        }
+        input.ShippingFee = shippingFee;
         input.TotalAmount = input.Subtotal + input.ShippingFee;
         input.AvailabilityErrors = prepared.Errors;
         input.CanPlaceOrder = prepared.Errors.Count == 0 && input.Items.Count > 0;
@@ -243,23 +313,6 @@ public class CheckoutController : Controller
 
     private async Task<PreparedCheckout> PrepareItemsAsync(Cart cart)
     {
-        var productIds = cart.CartItems
-            .Select(item => item.Sku.ProductId)
-            .Distinct()
-            .ToList();
-
-        var managedSkuIds = productIds.Count == 0
-            ? new Dictionary<long, long>()
-            : await _context.ProductSkus
-                .Where(item => productIds.Contains(item.ProductId))
-                .GroupBy(item => item.ProductId)
-                .Select(group => new
-                {
-                    ProductId = group.Key,
-                    SkuId = group.Min(item => item.SkuId)
-                })
-                .ToDictionaryAsync(item => item.ProductId, item => item.SkuId);
-
         var now = DateTime.Now;
         var items = new List<PreparedCheckoutItem>();
         var errors = new List<string>();
@@ -269,8 +322,6 @@ public class CheckoutController : Controller
             var sku = cartItem.Sku;
             var product = sku.Product;
             var active =
-                managedSkuIds.TryGetValue(product.ProductId, out var managedSkuId) &&
-                managedSkuId == sku.SkuId &&
                 sku.Status == "ACTIVE" &&
                 product.Status == "ACTIVE" &&
                 product.Category.Status == "ACTIVE" &&
