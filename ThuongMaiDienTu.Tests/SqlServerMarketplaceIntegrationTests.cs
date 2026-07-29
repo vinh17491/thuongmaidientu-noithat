@@ -96,6 +96,26 @@ public sealed class SqlServerMarketplaceIntegrationTests
         Assert.IsType<NotFoundResult>(result);
     }
 
+    [Fact]
+    public async Task MarketplaceCatalog_ProjectsAndPaginatesOnSqlServer()
+    {
+        await using var context = CreateContext();
+        var result = await new ProductsController(context).Index(new ProductCatalogQuery
+        {
+            SearchTerm = " ",
+            Page = 0,
+            Sort = "price_asc",
+            InStockOnly = true
+        });
+
+        var view = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<ProductCatalogViewModel>(view.Model);
+        Assert.Equal(1, model.Page);
+        Assert.Equal(12, model.PageSize);
+        Assert.All(model.Items, item => Assert.True(item.StockQuantity > 0));
+        Assert.All(model.Items, item => Assert.True(item.CurrentPrice > 0));
+    }
+
     private static ThuongMaiDienTuDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<ThuongMaiDienTuDbContext>()
             .UseSqlServer(SqlServerTestConfiguration.GetConnection().ConnectionString)

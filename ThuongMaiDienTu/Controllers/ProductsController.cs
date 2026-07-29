@@ -19,37 +19,54 @@ public class ProductsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? searchTerm, long? categoryId)
+    public async Task<IActionResult> Index(ProductCatalogQuery query, CancellationToken cancellationToken = default)
     {
-        searchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-        var query = GetPublicSkuQuery();
-
-        if (searchTerm is not null)
-        {
-            query = query.Where(sku =>
-                sku.Product.ProductName.Contains(searchTerm) ||
-                (sku.Product.Brand != null && sku.Product.Brand.Contains(searchTerm)) ||
-                sku.SkuCode.Contains(searchTerm));
-        }
-
-        if (categoryId.HasValue)
-        {
-            query = query.Where(sku => sku.Product.CategoryId == categoryId.Value);
-        }
-
-        var skus = await query
-            .OrderByDescending(sku => sku.Product.CreatedAt)
-            .ThenBy(sku => sku.Product.ProductName)
-            .ToListAsync();
-
+        query.Normalize();
+        const int pageSize = 12;
         var now = DateTime.Now;
+        var products = _context.Products.AsNoTracking()
+            .Where(product => product.Status == "ACTIVE" && product.Store.Status == "ACTIVE" && product.Category.Status == "ACTIVE" && product.ProductSkus.Any(sku => sku.Status == "ACTIVE"))
+            .Select(product => new
+            {
+                product.ProductId, product.ProductName, product.Brand, product.ShortDescription, product.CreatedAt,
+                product.CategoryId, CategoryName = product.Category.CategoryName, StoreId = product.StoreId, StoreName = product.Store.StoreName,
+                BestSku = product.ProductSkus.Where(sku => sku.Status == "ACTIVE")
+                    .OrderBy(sku => sku.SalePrice.HasValue && sku.SalePrice > 0 && sku.SalePrice < sku.Price && (!sku.SaleStart.HasValue || sku.SaleStart <= now) && (!sku.SaleEnd.HasValue || sku.SaleEnd >= now) ? sku.SalePrice : sku.Price)
+                    .ThenBy(sku => sku.SkuId)
+                    .Select(sku => new { sku.SkuId, sku.Price, sku.SalePrice, sku.SaleStart, sku.SaleEnd, sku.StockQuantity }).First(),
+                Image = product.ProductImages.Where(image => image.IsPrimary && (image.ImageUrl.StartsWith("/") || image.ImageUrl.StartsWith("http://") || image.ImageUrl.StartsWith("https://"))).OrderBy(image => image.SortOrder).Select(image => new { image.ImageUrl, image.AltText }).FirstOrDefault(),
+                AverageRating = product.Reviews.Where(review => review.Status == "VISIBLE").Select(review => (double?)review.Rating).Average() ?? 0,
+                ReviewCount = product.Reviews.Count(review => review.Status == "VISIBLE")
+            });
+        if (query.SearchTerm is not null) products = products.Where(product => product.ProductName.Contains(query.SearchTerm) || (product.ShortDescription != null && product.ShortDescription.Contains(query.SearchTerm)) || (product.Brand != null && product.Brand.Contains(query.SearchTerm)) || product.StoreName.Contains(query.SearchTerm));
+        if (query.CategoryId.HasValue) products = products.Where(product => product.CategoryId == query.CategoryId.Value);
+        if (query.StoreId.HasValue) products = products.Where(product => product.StoreId == query.StoreId.Value);
+        if (query.Brand is not null) products = products.Where(product => product.Brand == query.Brand);
+        if (query.MinPrice.HasValue) products = products.Where(product => (product.BestSku.SalePrice.HasValue && product.BestSku.SalePrice < product.BestSku.Price && (!product.BestSku.SaleStart.HasValue || product.BestSku.SaleStart <= now) && (!product.BestSku.SaleEnd.HasValue || product.BestSku.SaleEnd >= now) ? product.BestSku.SalePrice : product.BestSku.Price) >= query.MinPrice.Value);
+        if (query.MaxPrice.HasValue) products = products.Where(product => (product.BestSku.SalePrice.HasValue && product.BestSku.SalePrice < product.BestSku.Price && (!product.BestSku.SaleStart.HasValue || product.BestSku.SaleStart <= now) && (!product.BestSku.SaleEnd.HasValue || product.BestSku.SaleEnd >= now) ? product.BestSku.SalePrice : product.BestSku.Price) <= query.MaxPrice.Value);
+        if (query.MinimumRating.HasValue) products = products.Where(product => product.AverageRating >= query.MinimumRating.Value);
+        if (query.InStockOnly) products = products.Where(product => product.BestSku.StockQuantity > 0);
+        if (query.OnSaleOnly) products = products.Where(product => product.BestSku.SalePrice.HasValue && product.BestSku.SalePrice < product.BestSku.Price && (!product.BestSku.SaleStart.HasValue || product.BestSku.SaleStart <= now) && (!product.BestSku.SaleEnd.HasValue || product.BestSku.SaleEnd >= now));
+        products = query.Sort switch
+        {
+            "price_asc" => products.OrderBy(product => product.BestSku.SalePrice.HasValue && product.BestSku.SalePrice < product.BestSku.Price && (!product.BestSku.SaleStart.HasValue || product.BestSku.SaleStart <= now) && (!product.BestSku.SaleEnd.HasValue || product.BestSku.SaleEnd >= now) ? product.BestSku.SalePrice : product.BestSku.Price).ThenBy(product => product.ProductId),
+            "price_desc" => products.OrderByDescending(product => product.BestSku.SalePrice.HasValue && product.BestSku.SalePrice < product.BestSku.Price && (!product.BestSku.SaleStart.HasValue || product.BestSku.SaleStart <= now) && (!product.BestSku.SaleEnd.HasValue || product.BestSku.SaleEnd >= now) ? product.BestSku.SalePrice : product.BestSku.Price).ThenBy(product => product.ProductId),
+            "rating_desc" => products.OrderByDescending(product => product.AverageRating).ThenBy(product => product.ProductId),
+            "name_asc" => products.OrderBy(product => product.ProductName).ThenBy(product => product.ProductId),
+            _ => products.OrderByDescending(product => product.CreatedAt).ThenBy(product => product.ProductId)
+        };
+        var totalItems = await products.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+        query.Page = Math.Min(query.Page, totalPages);
+        var rows = await products.Skip((query.Page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         var model = new ProductCatalogViewModel
         {
-            SearchTerm = searchTerm,
-            CategoryId = categoryId,
-            Categories = await GetCategoryOptionsAsync(),
-            Items = skus.Select(sku => MapCatalogItem(sku, now)).ToList()
+            SearchTerm = query.SearchTerm, CategoryId = query.CategoryId, StoreId = query.StoreId, Brand = query.Brand,
+            MinPrice = query.MinPrice, MaxPrice = query.MaxPrice, MinimumRating = query.MinimumRating,
+            InStockOnly = query.InStockOnly, OnSaleOnly = query.OnSaleOnly, Sort = query.Sort, Page = query.Page,
+            PageSize = pageSize, TotalItems = totalItems, TotalPages = totalPages,
+            Categories = await GetCategoryOptionsAsync(cancellationToken), Stores = await GetStoreOptionsAsync(cancellationToken), Brands = await GetBrandOptionsAsync(cancellationToken),
+            Items = rows.Select(row => { var price = ProductPricingHelper.Calculate(row.BestSku.Price, row.BestSku.SalePrice, row.BestSku.SaleStart, row.BestSku.SaleEnd, now); return new ProductCatalogItemViewModel { ProductId = row.ProductId, ProductName = row.ProductName, Brand = row.Brand, ShortDescription = row.ShortDescription, CategoryName = row.CategoryName, StoreName = row.StoreName, SkuId = row.BestSku.SkuId, Price = row.BestSku.Price, SalePrice = row.BestSku.SalePrice, CurrentPrice = price.CurrentPrice, IsOnSale = price.IsOnSale, DiscountPercent = price.DiscountPercent, SaleStart = row.BestSku.SaleStart, SaleEnd = row.BestSku.SaleEnd, StockQuantity = row.BestSku.StockQuantity, ImageUrl = row.Image?.ImageUrl, AltText = row.Image?.AltText, AverageRating = row.AverageRating, ReviewCount = row.ReviewCount }; }).ToList()
         };
 
         return View(model);
@@ -177,7 +194,7 @@ public class ProductsController : Controller
                 sku.Product.Store.Status == "ACTIVE");
     }
 
-    private async Task<IReadOnlyList<SelectListItem>> GetCategoryOptionsAsync()
+    private async Task<IReadOnlyList<SelectListItem>> GetCategoryOptionsAsync(CancellationToken cancellationToken)
     {
         return await _context.ProductCategories
             .AsNoTracking()
@@ -187,8 +204,12 @@ public class ProductsController : Controller
             .Select(category => new SelectListItem(
                 category.CategoryName,
                 category.CategoryId.ToString()))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
+
+    private async Task<IReadOnlyList<SelectListItem>> GetStoreOptionsAsync(CancellationToken cancellationToken) => await _context.Stores.AsNoTracking().Where(store => store.Status == "ACTIVE").OrderBy(store => store.StoreName).Select(store => new SelectListItem(store.StoreName, store.StoreId.ToString())).ToListAsync(cancellationToken);
+
+    private async Task<IReadOnlyList<SelectListItem>> GetBrandOptionsAsync(CancellationToken cancellationToken) => await _context.Products.AsNoTracking().Where(product => product.Status == "ACTIVE" && product.Store.Status == "ACTIVE" && product.Brand != null && product.Brand != "").Select(product => product.Brand!).Distinct().OrderBy(brand => brand).Select(brand => new SelectListItem(brand, brand)).ToListAsync(cancellationToken);
 
     private static ProductCatalogItemViewModel MapCatalogItem(
         Models.ProductSku sku,
