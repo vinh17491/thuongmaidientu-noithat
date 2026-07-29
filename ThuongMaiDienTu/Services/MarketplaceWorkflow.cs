@@ -73,6 +73,12 @@ public static class StoreOrderWorkflow
 
         return subtotal - discount + shippingFee;
     }
+
+    public static decimal CalculatePayableParentTotal(
+        IEnumerable<(string Status, decimal TotalAmount)> storeOrders) =>
+        storeOrders
+            .Where(item => item.Status != Cancelled)
+            .Sum(item => item.TotalAmount);
 }
 
 public static class ShipmentWorkflow

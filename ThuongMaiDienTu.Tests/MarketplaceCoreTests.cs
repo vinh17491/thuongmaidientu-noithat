@@ -79,4 +79,20 @@ public sealed class MarketplaceCoreTests
         Assert.Equal(
             120_000m,
             StoreOrderWorkflow.CalculateTotal(100_000m, 10_000m, 30_000m));
+
+    [Fact]
+    public void ParentTotal_ExcludesCancelledPartFromMixedOrder()
+    {
+        var total = StoreOrderWorkflow.CalculatePayableParentTotal(
+        [
+            (StoreOrderWorkflow.Delivered, 150_000m),
+            (StoreOrderWorkflow.Cancelled, 90_000m)
+        ]);
+
+        Assert.Equal(150_000m, total);
+        Assert.Equal(
+            StoreOrderWorkflow.Delivered,
+            StoreOrderWorkflow.AggregateParentStatus(
+                [StoreOrderWorkflow.Delivered, StoreOrderWorkflow.Cancelled]));
+    }
 }

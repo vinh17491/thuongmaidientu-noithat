@@ -1,0 +1,27 @@
+@model ThuongMaiDienTu.ViewModels.CarrierShipmentDetailsViewModel
+@{ ViewData["Title"] = Model.TrackingCode; }
+<h1 class="h2">Shipment @Model.TrackingCode</h1>
+<div class="row g-3">
+    <div class="col-lg-7"><div class="card"><div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Order / StoreOrder</dt><dd class="col-sm-8">@Model.OrderCode / @Model.StoreOrderCode</dd>
+            <dt class="col-sm-4">Store / Customer</dt><dd class="col-sm-8">@Model.StoreName / @Model.CustomerName</dd>
+            <dt class="col-sm-4">Provider / Service</dt><dd class="col-sm-8">@Model.ProviderName / @Model.ServiceName</dd>
+            <dt class="col-sm-4">Pickup</dt><dd class="col-sm-8">@Model.PickupAddress</dd>
+            <dt class="col-sm-4">Delivery</dt><dd class="col-sm-8">@Model.DeliveryAddress</dd>
+            <dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8"><strong>@Model.Status</strong></dd>
+        </dl>
+        <form asp-action="UpdateTracking" method="post" class="input-group mb-3">
+            <input type="hidden" name="id" value="@Model.ShipmentId" /><input name="trackingCode" value="@Model.TrackingCode" class="form-control" required maxlength="100" /><button class="btn btn-outline-primary">Đổi tracking</button>
+        </form>
+        <form asp-action="UpdateStatus" method="post" class="row g-2">
+            <input type="hidden" name="id" value="@Model.ShipmentId" />
+            <div class="col-md-4"><select name="newStatus" class="form-select">@foreach (var s in new[] {"READY_FOR_PICKUP","PICKED_UP","IN_TRANSIT","DELIVERED","FAILED","CANCELLED"}) { <option>@s</option> }</select></div>
+            <div class="col-md-5"><input name="note" class="form-control" maxlength="500" placeholder="Ghi chú" /></div>
+            <div class="col-md-3"><button class="btn btn-primary w-100">Cập nhật</button></div>
+        </form>
+    </div></div></div>
+    <div class="col-lg-5"><div class="card"><div class="card-header">Lịch sử</div><div class="list-group list-group-flush">
+        @foreach (var h in Model.History) { <div class="list-group-item"><strong>@h.OldStatus → @h.NewStatus</strong><small class="d-block text-muted">@h.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small><span>@h.Note</span></div> }
+    </div></div></div>
+</div>

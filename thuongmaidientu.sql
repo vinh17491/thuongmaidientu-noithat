@@ -587,6 +587,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
+    THROW 50014,N'Không được cập nhật trạng thái trực tiếp. Hãy dùng marketplace workflow service.',1;
     IF NOT EXISTS(SELECT 1 FROM dbo.orders WHERE order_id=@OrderId) THROW 50011,N'Đơn hàng không tồn tại.',1;
     IF @NewStatus NOT IN('PENDING','CONFIRMED','PROCESSING','SHIPPING','DELIVERED','CANCELLED') THROW 50012,N'Trạng thái đơn hàng không hợp lệ.',1;
     IF @PaymentStatus IS NOT NULL AND @PaymentStatus NOT IN('UNPAID','PAID','FAILED') THROW 50013,N'Trạng thái thanh toán không hợp lệ.',1;

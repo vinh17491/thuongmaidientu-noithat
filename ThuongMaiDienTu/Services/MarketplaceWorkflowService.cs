@@ -58,16 +58,33 @@ public sealed class MarketplaceWorkflowService(
         AddAudit("SHIPMENT_STATUS_CHANGED", "Shipment", shipment.ShipmentId,
             new { Status = oldStatus }, new { Status = nextStatus });
 
-        if (nextStatus == ShipmentWorkflow.Delivered)
+        string? nextStoreOrderStatus = nextStatus switch
+        {
+            ShipmentWorkflow.ReadyForPickup
+                when shipment.StoreOrder.Status == StoreOrderWorkflow.Confirmed
+                => StoreOrderWorkflow.Processing,
+            ShipmentWorkflow.PickedUp or ShipmentWorkflow.InTransit
+                => StoreOrderWorkflow.Shipping,
+            ShipmentWorkflow.Delivered
+                when await context.Shipments
+                    .Where(item => item.StoreOrderId == shipment.StoreOrderId &&
+                                   item.ShipmentId != shipment.ShipmentId)
+                    .AllAsync(item => item.Status == ShipmentWorkflow.Delivered, cancellationToken)
+                => StoreOrderWorkflow.Delivered,
+            _ => null
+        };
+
+        if (nextStoreOrderStatus is not null &&
+            shipment.StoreOrder.Status != nextStoreOrderStatus)
         {
             var oldStoreOrderStatus = shipment.StoreOrder.Status;
-            shipment.StoreOrder.Status = StoreOrderWorkflow.Delivered;
+            shipment.StoreOrder.Status = nextStoreOrderStatus;
             shipment.StoreOrder.UpdatedAt = now;
             context.OrderStatusHistories.Add(new OrderStatusHistory
             {
                 StoreOrderId = shipment.StoreOrderId,
                 OldStatus = oldStoreOrderStatus,
-                NewStatus = StoreOrderWorkflow.Delivered,
+                NewStatus = nextStoreOrderStatus,
                 ChangedByUserId = currentUser.UserId.Value,
                 Note = NormalizeNote(note),
                 CreatedAt = now
@@ -152,16 +169,40 @@ public sealed class MarketplaceWorkflowService(
         long orderId, DateTime now, CancellationToken cancellationToken)
     {
         var order = await context.Orders.SingleAsync(item => item.OrderId == orderId, cancellationToken);
-        var statuses = await context.StoreOrders
+        var storeOrders = await context.StoreOrders
             .Where(item => item.OrderId == orderId)
-            .Select(item => item.Status)
+            .Select(item => new { item.Status, item.TotalAmount })
             .ToListAsync(cancellationToken);
-        order.OrderStatus = StoreOrderWorkflow.AggregateParentStatus(statuses);
+        order.OrderStatus = StoreOrderWorkflow.AggregateParentStatus(
+            storeOrders.Select(item => item.Status));
+        var oldTotal = order.TotalAmount;
+        order.TotalAmount = StoreOrderWorkflow.CalculatePayableParentTotal(
+            storeOrders.Select(item => (item.Status, item.TotalAmount)));
+        order.ShippingFee = await context.StoreOrders
+            .Where(item => item.OrderId == orderId &&
+                           item.Status != StoreOrderWorkflow.Cancelled)
+            .SumAsync(item => item.ShippingFee, cancellationToken);
         order.UpdatedAt = now;
         if (order.OrderStatus == StoreOrderWorkflow.Delivered &&
             order.PaymentMethod == OrderWorkflowHelper.Cod)
         {
             order.PaymentStatus = OrderWorkflowHelper.Paid;
+        }
+        else if (order.PaymentMethod == OrderWorkflowHelper.Cod)
+        {
+            order.PaymentStatus = OrderWorkflowHelper.Unpaid;
+        }
+
+        if (oldTotal != order.TotalAmount)
+        {
+            AddAudit("ORDER_TOTAL_RECALCULATED", "Order", order.OrderId,
+                new { TotalAmount = oldTotal },
+                new
+                {
+                    order.TotalAmount,
+                    HasCancelledPart = storeOrders.Any(item =>
+                        item.Status == StoreOrderWorkflow.Cancelled)
+                });
         }
     }
 

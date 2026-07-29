@@ -1,0 +1,90 @@
+@model ThuongMaiDienTu.ViewModels.CarrierDashboardViewModel
+@{
+    ViewData["Title"] = "Carrier Portal";
+    var statuses = new[] { "CREATED", "READY_FOR_PICKUP", "PICKED_UP", "IN_TRANSIT", "DELIVERED", "FAILED", "CANCELLED" };
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h2">Carrier Portal</h1>
+    <a asp-controller="CarrierShipments" asp-action="Index" class="btn btn-primary">Quản lý shipment</a>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Tổng shipment</small><div class="h3">@Model.TotalShipments</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Tổng phí</small><div class="h3">@Model.TotalShippingFee.ToString("N0") đ</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Giao thành công</small><div class="h3">@Model.SuccessRate%</div></div></div></div>
+</div>
+<div class="row g-2 mb-4">
+    @foreach (var status in statuses)
+    {
+        <div class="col-6 col-lg"><div class="border rounded p-2"><small>@status</small><strong class="d-block">@Model.Counts.GetValueOrDefault(status)</strong></div></div>
+    }
+</div>
+
+<h2 class="h4">Provider thuộc phạm vi quản lý</h2>
+<div class="table-responsive mb-4">
+    <table class="table"><thead><tr><th>Tên</th><th>Slug</th><th>Trạng thái</th></tr></thead>
+    <tbody>@foreach (var p in Model.Providers) { <tr><td>
+        <form asp-action="UpdateProvider" method="post" class="row g-1">
+            <input type="hidden" name="ProviderId" value="@p.ProviderId" />
+            <div class="col"><input name="ProviderName" value="@p.ProviderName" class="form-control form-control-sm" required /></div>
+            <div class="col"><input name="Phone" value="@p.Phone" class="form-control form-control-sm" placeholder="Điện thoại" /></div>
+            <div class="col"><input name="Email" value="@p.Email" class="form-control form-control-sm" placeholder="Email" /></div>
+            <div class="col-auto"><button class="btn btn-sm btn-outline-primary">Lưu</button></div>
+        </form>
+        </td><td><code>@p.Slug</code></td><td>@p.Status
+        @if (User.IsInRole("ADMIN"))
+        {
+            <form asp-action="SetProviderStatus" method="post" class="d-flex gap-1 mt-1">
+                <input type="hidden" name="id" value="@p.ProviderId" />
+                <select name="status" class="form-select form-select-sm"><option>ACTIVE</option><option>PENDING</option><option>SUSPENDED</option></select>
+                <button class="btn btn-sm btn-outline-dark">Đổi</button>
+            </form>
+        }
+        </td></tr> }</tbody></table>
+</div>
+
+<h2 class="h4">Dịch vụ và bảng giá</h2>
+@foreach (var service in Model.Services)
+{
+    <section class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <strong>@service.ProviderName · @service.ServiceName (@service.ServiceCode)</strong>
+            <form asp-action="ToggleService" method="post">
+                <input type="hidden" name="id" value="@service.ServiceId" />
+                <button class="btn btn-sm btn-outline-secondary">@(service.Status == "ACTIVE" ? "Tắt" : "Bật")</button>
+            </form>
+        </div>
+        <div class="card-body">
+            <p>Phí cơ bản: <strong>@service.BaseFee.ToString("N0") đ</strong></p>
+            <table class="table table-sm">
+                <thead><tr><th>Điểm đi</th><th>Điểm đến</th><th>Trọng lượng</th><th>Phí</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var rule in service.Rules)
+                {
+                    <tr><td>@rule.OriginArea</td><td>@rule.DestinationArea</td><td>@rule.MinWeight–@rule.MaxWeight kg</td><td>@rule.Fee.ToString("N0") đ</td>
+                    <td><form asp-action="ToggleRate" method="post"><input type="hidden" name="id" value="@rule.RuleId" /><button class="btn btn-sm btn-outline-secondary">@(rule.Status == "ACTIVE" ? "Tắt" : "Bật")</button></form></td></tr>
+                }
+                </tbody>
+            </table>
+            <form asp-action="CreateRate" method="post" class="row g-2">
+                <input type="hidden" name="ServiceId" value="@service.ServiceId" />
+                <div class="col-md-2"><input name="OriginArea" class="form-control" placeholder="Điểm đi" required /></div>
+                <div class="col-md-2"><input name="DestinationArea" class="form-control" placeholder="Điểm đến" required /></div>
+                <div class="col-md-2"><input name="MinWeight" type="number" step=".001" min="0" class="form-control" placeholder="Min kg" required /></div>
+                <div class="col-md-2"><input name="MaxWeight" type="number" step=".001" min=".001" class="form-control" placeholder="Max kg" required /></div>
+                <div class="col-md-2"><input name="Fee" type="number" min="0" class="form-control" placeholder="Phí" required /></div>
+                <div class="col-md-2"><button class="btn btn-outline-primary w-100">Thêm rule</button></div>
+            </form>
+        </div>
+    </section>
+}
+
+<h2 class="h4 mt-4">Thêm dịch vụ</h2>
+<form asp-action="CreateService" method="post" class="row g-2 card card-body">
+    <div class="col-md-3"><select name="ProviderId" class="form-select" required><option value="">Chọn provider</option>@foreach (var p in Model.Providers) { <option value="@p.ProviderId">@p.ProviderName</option> }</select></div>
+    <div class="col-md-2"><input name="ServiceCode" class="form-control" placeholder="Mã dịch vụ" required /></div>
+    <div class="col-md-3"><input name="ServiceName" class="form-control" placeholder="Tên dịch vụ" required /></div>
+    <div class="col-md-2"><input name="BaseFee" type="number" min="0" class="form-control" placeholder="Phí cơ bản" required /></div>
+    <div class="col-md-1"><input name="EstimatedMinDays" type="number" min="1" class="form-control" value="1" /></div>
+    <div class="col-md-1"><input name="EstimatedMaxDays" type="number" min="1" class="form-control" value="3" /></div>
+    <div class="col-12"><button class="btn btn-primary">Tạo dịch vụ</button></div>
+</form>

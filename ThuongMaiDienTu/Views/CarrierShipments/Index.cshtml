@@ -1,0 +1,13 @@
+@model ThuongMaiDienTu.ViewModels.CarrierShipmentListViewModel
+@{ ViewData["Title"] = "Shipment"; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h2">Shipment</h1><a asp-controller="CarrierPortal" asp-action="Index">Carrier Dashboard</a>
+</div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5"><input name="search" value="@Model.Search" class="form-control" placeholder="Tracking code" /></div>
+    <div class="col-md-4"><select name="status" class="form-select"><option value="">Mọi trạng thái</option>@foreach (var s in new[] {"CREATED","READY_FOR_PICKUP","PICKED_UP","IN_TRANSIT","DELIVERED","FAILED","CANCELLED"}) { <option value="@s" selected="@(s == Model.Status ? "selected" : null)">@s</option> }</select></div>
+    <div class="col-md-3"><button class="btn btn-primary w-100">Lọc</button></div>
+</form>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Tracking</th><th>Provider</th><th>Service</th><th>StoreOrder</th><th>Phí</th><th>Trạng thái</th></tr></thead>
+<tbody>@foreach (var item in Model.Items) { <tr><td><a asp-action="Details" asp-route-id="@item.ShipmentId">@item.TrackingCode</a></td><td>@item.ProviderName</td><td>@item.ServiceName</td><td>@item.StoreOrderCode</td><td>@item.ShippingFee.ToString("N0") đ</td><td>@item.Status</td></tr> }</tbody></table></div>
+<nav><ul class="pagination">@for (var p=1; p<=Model.TotalPages; p++) { <li class="page-item @(p==Model.Page ? "active" : null)"><a class="page-link" asp-route-page="@p" asp-route-search="@Model.Search" asp-route-status="@Model.Status">@p</a></li> }</ul></nav>

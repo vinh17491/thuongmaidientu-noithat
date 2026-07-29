@@ -71,6 +71,10 @@
                     <ul class="navbar-nav align-items-sm-center">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            @if (User.IsInRole("CARRIER") || User.IsInRole("ADMIN"))
+                            {
+                                <li class="nav-item"><a class="nav-link text-dark" asp-controller="CarrierPortal" asp-action="Index">Carrier Portal</a></li>
+                            }
                             @if (User.IsInRole("CUSTOMER"))
                             {
                                 <li class="nav-item">
