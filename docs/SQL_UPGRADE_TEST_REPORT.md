@@ -98,3 +98,21 @@ Bộ integration hiện tập trung vào schema/EF/quote path liên quan trực 
 nâng cấp. Các kịch bản HTTP authorization, checkout rollback và fault injection
 toàn transaction vẫn cần fixture dữ liệu cô lập trước khi có thể kiểm thử mà
 không sửa dữ liệu nghiệp vụ hiện tại.
+
+## Cấu hình integration test
+
+Integration tests ưu tiên connection string từ biến môi trường
+`THUONGMAIDIENTU_TEST_CONNECTION`. Giá trị phải trỏ tới đúng database
+`thuongmaidientu`; helper không ghi toàn bộ connection string ra log.
+
+PowerShell:
+
+```powershell
+$env:THUONGMAIDIENTU_TEST_CONNECTION="Server=localhost;Database=thuongmaidientu;Trusted_Connection=True;TrustServerCertificate=True"
+dotnet test
+```
+
+Nếu biến môi trường không tồn tại, test local Development dùng fallback
+Windows integrated authentication tới `localhost/thuongmaidientu`. Fallback
+không chứa username, password, API key hoặc secret và không thay đổi connection
+string của ứng dụng chính.

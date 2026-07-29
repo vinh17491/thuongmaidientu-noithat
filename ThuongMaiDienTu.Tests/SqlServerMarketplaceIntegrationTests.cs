@@ -5,11 +5,9 @@ using Xunit;
 
 namespace ThuongMaiDienTu.Tests;
 
+[Collection(SqlServerConfigurationCollection.Name)]
 public sealed class SqlServerMarketplaceIntegrationTests
 {
-    private const string ConnectionString =
-        "Server=localhost;Database=thuongmaidientu;Trusted_Connection=True;TrustServerCertificate=True";
-
     [Fact]
     public async Task CanonicalShippingSchema_IsQueryableByEf()
     {
@@ -73,6 +71,6 @@ public sealed class SqlServerMarketplaceIntegrationTests
 
     private static ThuongMaiDienTuDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<ThuongMaiDienTuDbContext>()
-            .UseSqlServer(ConnectionString)
+            .UseSqlServer(SqlServerTestConfiguration.GetConnection().ConnectionString)
             .Options);
 }
