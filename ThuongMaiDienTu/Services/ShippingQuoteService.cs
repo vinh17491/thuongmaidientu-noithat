@@ -31,22 +31,33 @@ public sealed class ShippingQuoteService(ThuongMaiDienTuDbContext context)
             return null;
         }
 
-        return await context.ShippingServices
+        return await context.StoreShippingServices
             .AsNoTracking()
-            .Where(service =>
-                service.Status == "ACTIVE" &&
-                service.Provider.Status == "ACTIVE")
-            .Select(service => new ShippingSelection(
-                service.ProviderId,
-                service.ServiceId,
-                service.RateRules
+            .Where(mapping =>
+                mapping.StoreId == storeId &&
+                mapping.IsEnabled &&
+                mapping.Status == "ACTIVE" &&
+                mapping.Service.Status == "ACTIVE" &&
+                mapping.Service.Provider.Status == "ACTIVE")
+            .Select(mapping => new
+            {
+                mapping.Service.ProviderId,
+                mapping.ServiceId,
+                Fee = mapping.FeeOverride ?? mapping.Service.RateRules
                     .Where(rule => rule.Status == "ACTIVE")
                     .Select(rule => (decimal?)rule.Fee)
-                    .Min() ?? service.BaseFee,
-                service.EstimatedMinDays,
-                service.EstimatedMaxDays))
-            .OrderBy(quote => quote.Fee)
-            .ThenBy(quote => quote.EstimatedMaxDays)
+                    .Min() ?? mapping.Service.BaseFee,
+                mapping.Service.EstimatedMinDays,
+                mapping.Service.EstimatedMaxDays
+            })
+            .OrderBy(candidate => candidate.Fee)
+            .ThenBy(candidate => candidate.EstimatedMaxDays)
+            .Select(candidate => new ShippingSelection(
+                candidate.ProviderId,
+                candidate.ServiceId,
+                candidate.Fee,
+                candidate.EstimatedMinDays,
+                candidate.EstimatedMaxDays))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

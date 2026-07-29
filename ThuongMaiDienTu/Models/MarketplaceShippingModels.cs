@@ -55,6 +55,19 @@ public sealed class ShippingService
     [Column("status")] public string Status { get; set; } = "ACTIVE";
     public ShippingProvider Provider { get; set; } = null!;
     public ICollection<ShippingRateRule> RateRules { get; set; } = [];
+    public ICollection<StoreShippingService> StoreMappings { get; set; } = [];
+}
+
+[Table("store_shipping_services")]
+public sealed class StoreShippingService
+{
+    [Column("store_id")] public long StoreId { get; set; }
+    [Column("service_id")] public long ServiceId { get; set; }
+    [Column("is_enabled")] public bool IsEnabled { get; set; }
+    [Column("fee_override", TypeName = "decimal(18,2)")] public decimal? FeeOverride { get; set; }
+    [Column("status")] public string Status { get; set; } = "ACTIVE";
+    public Store Store { get; set; } = null!;
+    public ShippingService Service { get; set; } = null!;
 }
 
 [Table("shipping_rate_rules")]
@@ -131,7 +144,7 @@ public sealed class OrderStatusHistory
     [Column("store_order_id")] public long StoreOrderId { get; set; }
     [Column("old_status")] public string? OldStatus { get; set; }
     [Column("new_status")] public string NewStatus { get; set; } = string.Empty;
-    [Column("changed_by_user_id")] public long ChangedByUserId { get; set; }
+    [Column("changed_by_user_id")] public long? ChangedByUserId { get; set; }
     [Column("note")] public string? Note { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }

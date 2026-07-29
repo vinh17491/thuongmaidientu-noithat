@@ -638,184 +638,70 @@ SELECT TOP (20) * FROM dbo.vw_revenue_by_month ORDER BY revenue_year,revenue_mon
 GO
 
 /* ============================================================================
-   9. MARKETPLACE UPGRADE - IDEMPOTENT P0 SCHEMA
+   9. SAFE LEGACY -> CANONICAL MARKETPLACE UPGRADE
    ============================================================================ */
 SET XACT_ABORT ON;
+
+/* Stage A: normalize legacy key names with all audited dependencies. */
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    IF OBJECT_ID(N'dbo.store_orders', N'U') IS NULL
+    IF COL_LENGTH(N'dbo.shipping_providers',N'carrier_user_id') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipping_providers',N'owner_user_id') IS NULL
     BEGIN
-        CREATE TABLE dbo.store_orders
-        (
-            store_order_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_store_orders PRIMARY KEY,
-            order_id BIGINT NOT NULL,
-            store_id BIGINT NOT NULL,
-            store_order_code VARCHAR(80) NOT NULL,
-            subtotal DECIMAL(18,2) NOT NULL,
-            discount_amount DECIMAL(18,2) NOT NULL CONSTRAINT DF_store_orders_discount DEFAULT(0),
-            shipping_fee DECIMAL(18,2) NOT NULL,
-            total_amount DECIMAL(18,2) NOT NULL,
-            status VARCHAR(30) NOT NULL CONSTRAINT DF_store_orders_status DEFAULT('PENDING'),
-            created_at DATETIME2 NOT NULL CONSTRAINT DF_store_orders_created DEFAULT(SYSUTCDATETIME()),
-            updated_at DATETIME2 NULL,
-            row_version ROWVERSION NOT NULL,
-            CONSTRAINT UQ_store_orders_code UNIQUE(store_order_code),
-            CONSTRAINT UQ_store_orders_order_store UNIQUE(order_id,store_id),
-            CONSTRAINT FK_store_orders_orders FOREIGN KEY(order_id) REFERENCES dbo.orders(order_id),
-            CONSTRAINT FK_store_orders_stores FOREIGN KEY(store_id) REFERENCES dbo.stores(store_id),
-            CONSTRAINT CK_store_orders_money CHECK(subtotal>=0 AND discount_amount>=0 AND shipping_fee>=0 AND total_amount>=0),
-            CONSTRAINT CK_store_orders_status CHECK(status IN('PENDING','CONFIRMED','PROCESSING','SHIPPING','DELIVERED','CANCELLED'))
-        );
+        EXEC sys.sp_executesql N'
+            IF EXISTS(SELECT 1 FROM dbo.shipping_providers WHERE carrier_user_id IS NULL)
+                THROW 50201,N''Cannot canonicalize provider: carrier_user_id contains NULL.'',1;
+            IF EXISTS(SELECT 1 FROM dbo.shipping_providers p LEFT JOIN dbo.users u ON u.user_id=p.carrier_user_id WHERE u.user_id IS NULL)
+                THROW 50202,N''Cannot canonicalize provider: orphan carrier owner.'',1;';
+        IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_providers_carrier_user')
+            ALTER TABLE dbo.shipping_providers DROP CONSTRAINT FK_shipping_providers_carrier_user;
+        IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.shipping_providers') AND name=N'UX_shipping_providers_carrier_user')
+            DROP INDEX UX_shipping_providers_carrier_user ON dbo.shipping_providers;
+        EXEC sys.sp_rename N'dbo.shipping_providers.carrier_user_id',N'owner_user_id',N'COLUMN';
     END;
 
-    IF COL_LENGTH(N'dbo.order_items', N'store_order_id') IS NULL
-        ALTER TABLE dbo.order_items ADD store_order_id BIGINT NULL;
-    IF COL_LENGTH(N'dbo.order_items', N'store_name_snapshot') IS NULL
-        ALTER TABLE dbo.order_items ADD store_name_snapshot NVARCHAR(200) NULL;
-
-    INSERT dbo.store_orders(order_id,store_id,store_order_code,subtotal,discount_amount,shipping_fee,total_amount,status,created_at,updated_at)
-    SELECT o.order_id,p.store_id,
-           CONCAT(o.order_code,'-',p.store_id),
-           SUM(oi.unit_price*oi.quantity),0,
-           CASE WHEN ROW_NUMBER() OVER(PARTITION BY o.order_id ORDER BY p.store_id)=1 THEN o.shipping_fee ELSE 0 END,
-           SUM(oi.unit_price*oi.quantity)+CASE WHEN ROW_NUMBER() OVER(PARTITION BY o.order_id ORDER BY p.store_id)=1 THEN o.shipping_fee ELSE 0 END,
-           o.order_status,o.created_at,o.updated_at
-    FROM dbo.orders o
-    JOIN dbo.order_items oi ON oi.order_id=o.order_id
-    JOIN dbo.product_skus sku ON sku.sku_id=oi.sku_id
-    JOIN dbo.products p ON p.product_id=sku.product_id
-    WHERE NOT EXISTS(SELECT 1 FROM dbo.store_orders so WHERE so.order_id=o.order_id AND so.store_id=p.store_id)
-    GROUP BY o.order_id,o.order_code,o.shipping_fee,o.order_status,o.created_at,o.updated_at,p.store_id;
-
-    UPDATE oi
-    SET store_order_id=so.store_order_id,
-        store_name_snapshot=COALESCE(oi.store_name_snapshot,s.store_name)
-    FROM dbo.order_items oi
-    JOIN dbo.product_skus sku ON sku.sku_id=oi.sku_id
-    JOIN dbo.products p ON p.product_id=sku.product_id
-    JOIN dbo.stores s ON s.store_id=p.store_id
-    JOIN dbo.store_orders so ON so.order_id=oi.order_id AND so.store_id=p.store_id
-    WHERE oi.store_order_id IS NULL OR oi.store_name_snapshot IS NULL;
-
-    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_order_items_store_orders')
-        ALTER TABLE dbo.order_items WITH CHECK ADD CONSTRAINT FK_order_items_store_orders
-        FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id);
-
-    IF OBJECT_ID(N'dbo.shipping_providers', N'U') IS NULL
+    IF COL_LENGTH(N'dbo.shipping_providers',N'code') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipping_providers',N'slug') IS NULL
     BEGIN
-        CREATE TABLE dbo.shipping_providers
-        (
-            provider_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_providers PRIMARY KEY,
-            owner_user_id BIGINT NOT NULL,
-            provider_name NVARCHAR(200) NOT NULL,
-            slug VARCHAR(220) NOT NULL CONSTRAINT UQ_shipping_providers_slug UNIQUE,
-            phone VARCHAR(30) NULL,email VARCHAR(255) NULL,description NVARCHAR(MAX) NULL,
-            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_providers_status DEFAULT('PENDING'),
-            created_at DATETIME2 NOT NULL CONSTRAINT DF_shipping_providers_created DEFAULT(SYSUTCDATETIME()),
-            updated_at DATETIME2 NULL,
-            CONSTRAINT FK_shipping_providers_users FOREIGN KEY(owner_user_id) REFERENCES dbo.users(user_id),
-            CONSTRAINT CK_shipping_providers_status CHECK(status IN('PENDING','ACTIVE','SUSPENDED'))
-        );
+        IF EXISTS(SELECT 1 FROM sys.key_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.shipping_providers') AND name=N'UX_shipping_providers_code')
+            ALTER TABLE dbo.shipping_providers DROP CONSTRAINT UX_shipping_providers_code;
+        EXEC sys.sp_rename N'dbo.shipping_providers.code',N'slug',N'COLUMN';
+    END;
+    IF COL_LENGTH(N'dbo.shipping_providers',N'contact_phone') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipping_providers',N'phone') IS NULL
+        EXEC sys.sp_rename N'dbo.shipping_providers.contact_phone',N'phone',N'COLUMN';
+
+    IF COL_LENGTH(N'dbo.shipping_services',N'shipping_service_id') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipping_services',N'service_id') IS NULL
+    BEGIN
+        IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_store_shipping_services_services')
+            ALTER TABLE dbo.store_shipping_services DROP CONSTRAINT FK_store_shipping_services_services;
+        IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_store_orders_shipping_services')
+            ALTER TABLE dbo.store_orders DROP CONSTRAINT FK_store_orders_shipping_services;
+        IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipments_services')
+            ALTER TABLE dbo.shipments DROP CONSTRAINT FK_shipments_services;
+        IF EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'PK_store_shipping_services')
+            ALTER TABLE dbo.store_shipping_services DROP CONSTRAINT PK_store_shipping_services;
+        IF EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'UX_shipping_services_provider_code')
+            ALTER TABLE dbo.shipping_services DROP CONSTRAINT UX_shipping_services_provider_code;
+        IF EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'PK_shipping_services')
+            ALTER TABLE dbo.shipping_services DROP CONSTRAINT PK_shipping_services;
+        EXEC sys.sp_rename N'dbo.shipping_services.shipping_service_id',N'service_id',N'COLUMN';
+        EXEC sys.sp_rename N'dbo.store_shipping_services.shipping_service_id',N'service_id',N'COLUMN';
+        EXEC sys.sp_rename N'dbo.store_orders.shipping_service_id',N'service_id',N'COLUMN';
+        EXEC sys.sp_rename N'dbo.shipments.shipping_service_id',N'service_id',N'COLUMN';
     END;
 
-    IF OBJECT_ID(N'dbo.shipping_services', N'U') IS NULL
-    BEGIN
-        CREATE TABLE dbo.shipping_services
-        (
-            service_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_services PRIMARY KEY,
-            provider_id BIGINT NOT NULL,service_code VARCHAR(80) NOT NULL,service_name NVARCHAR(200) NOT NULL,
-            base_fee DECIMAL(18,2) NOT NULL,estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,
-            max_weight DECIMAL(18,3) NULL,status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_services_status DEFAULT('ACTIVE'),
-            CONSTRAINT UQ_shipping_services_code UNIQUE(provider_id,service_code),
-            CONSTRAINT FK_shipping_services_providers FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
-            CONSTRAINT CK_shipping_services_values CHECK(base_fee>=0 AND estimated_min_days>=0 AND estimated_max_days>=estimated_min_days),
-            CONSTRAINT CK_shipping_services_status CHECK(status IN('ACTIVE','INACTIVE'))
-        );
-    END;
-
-    IF OBJECT_ID(N'dbo.shipping_rate_rules', N'U') IS NULL
-    BEGIN
-        CREATE TABLE dbo.shipping_rate_rules
-        (
-            rule_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipping_rate_rules PRIMARY KEY,
-            service_id BIGINT NOT NULL,origin_area NVARCHAR(120) NOT NULL,destination_area NVARCHAR(120) NOT NULL,
-            min_weight DECIMAL(18,3) NOT NULL,max_weight DECIMAL(18,3) NOT NULL,fee DECIMAL(18,2) NOT NULL,
-            extra_fee_per_kg DECIMAL(18,2) NOT NULL CONSTRAINT DF_shipping_rate_extra DEFAULT(0),
-            supports_cod BIT NOT NULL CONSTRAINT DF_shipping_rate_cod DEFAULT(1),
-            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_rate_status DEFAULT('ACTIVE'),
-            CONSTRAINT FK_shipping_rate_rules_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
-            CONSTRAINT CK_shipping_rate_values CHECK(min_weight>=0 AND max_weight>=min_weight AND fee>=0 AND extra_fee_per_kg>=0)
-        );
-    END;
-
-    IF OBJECT_ID(N'dbo.shipping_quotes', N'U') IS NULL
-    BEGIN
-        CREATE TABLE dbo.shipping_quotes
-        (
-            quote_id UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_shipping_quotes PRIMARY KEY,
-            provider_id BIGINT NOT NULL,service_id BIGINT NOT NULL,fee DECIMAL(18,2) NOT NULL,
-            estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,expires_at DATETIME2 NOT NULL,
-            status VARCHAR(20) NOT NULL CONSTRAINT DF_shipping_quotes_status DEFAULT('ACTIVE'),selected_at DATETIME2 NULL,
-            CONSTRAINT FK_shipping_quotes_provider FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
-            CONSTRAINT FK_shipping_quotes_service FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
-            CONSTRAINT CK_shipping_quotes_fee CHECK(fee>=0),
-            CONSTRAINT CK_shipping_quotes_status CHECK(status IN('ACTIVE','SELECTED','EXPIRED','CANCELLED'))
-        );
-    END;
-
-    IF OBJECT_ID(N'dbo.shipments', N'U') IS NULL
-    BEGIN
-        CREATE TABLE dbo.shipments
-        (
-            shipment_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_shipments PRIMARY KEY,
-            store_order_id BIGINT NOT NULL,provider_id BIGINT NOT NULL,service_id BIGINT NOT NULL,
-            shipping_fee DECIMAL(18,2) NOT NULL,tracking_code VARCHAR(100) NOT NULL CONSTRAINT UQ_shipments_tracking UNIQUE,
-            status VARCHAR(30) NOT NULL CONSTRAINT DF_shipments_status DEFAULT('CREATED'),
-            pickup_address NVARCHAR(500) NOT NULL,delivery_address NVARCHAR(500) NOT NULL,
-            estimated_delivery_at DATETIME2 NULL,picked_up_at DATETIME2 NULL,delivered_at DATETIME2 NULL,
-            created_at DATETIME2 NOT NULL CONSTRAINT DF_shipments_created DEFAULT(SYSUTCDATETIME()),updated_at DATETIME2 NULL,
-            row_version ROWVERSION NOT NULL,
-            CONSTRAINT FK_shipments_store_orders FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id),
-            CONSTRAINT FK_shipments_provider FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id),
-            CONSTRAINT FK_shipments_service FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id),
-            CONSTRAINT CK_shipments_fee CHECK(shipping_fee>=0),
-            CONSTRAINT CK_shipments_status CHECK(status IN('CREATED','READY_FOR_PICKUP','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'))
-        );
-    END;
-
-    IF OBJECT_ID(N'dbo.order_status_histories', N'U') IS NULL
-        CREATE TABLE dbo.order_status_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,store_order_id BIGINT NOT NULL,old_status VARCHAR(30) NULL,new_status VARCHAR(30) NOT NULL,changed_by_user_id BIGINT NOT NULL,note NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(store_order_id) REFERENCES dbo.store_orders(store_order_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
-    IF OBJECT_ID(N'dbo.shipment_status_histories', N'U') IS NULL
-        CREATE TABLE dbo.shipment_status_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,shipment_id BIGINT NOT NULL,old_status VARCHAR(30) NULL,new_status VARCHAR(30) NOT NULL,changed_by_user_id BIGINT NOT NULL,note NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(shipment_id) REFERENCES dbo.shipments(shipment_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
-    IF OBJECT_ID(N'dbo.product_price_histories', N'U') IS NULL
-        CREATE TABLE dbo.product_price_histories(history_id BIGINT IDENTITY(1,1) PRIMARY KEY,sku_id BIGINT NOT NULL,old_price DECIMAL(18,2) NOT NULL,new_price DECIMAL(18,2) NOT NULL,old_sale_price DECIMAL(18,2) NULL,new_sale_price DECIMAL(18,2) NULL,changed_by_user_id BIGINT NOT NULL,reason NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(sku_id) REFERENCES dbo.product_skus(sku_id),FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id));
-    IF OBJECT_ID(N'dbo.audit_logs', N'U') IS NULL
-        CREATE TABLE dbo.audit_logs(audit_id BIGINT IDENTITY(1,1) PRIMARY KEY,actor_user_id BIGINT NULL,action VARCHAR(100) NOT NULL,entity_name VARCHAR(100) NOT NULL,entity_id VARCHAR(100) NULL,before_json NVARCHAR(MAX) NULL,after_json NVARCHAR(MAX) NULL,ip_address VARCHAR(64) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),FOREIGN KEY(actor_user_id) REFERENCES dbo.users(user_id));
-
-    IF NOT EXISTS(SELECT 1 FROM dbo.users WHERE email='carrier@marketplace.vn')
-        INSERT dbo.users(full_name,email,phone,password_hash,role,status)
-        VALUES(N'Đơn vị vận chuyển Marketplace','carrier@marketplace.vn','0900000099','demo_hash_carrier','CARRIER','ACTIVE');
-    DECLARE @CarrierOwnerId BIGINT=(SELECT user_id FROM dbo.users WHERE email='carrier@marketplace.vn');
-    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_providers WHERE slug='giao-hang-marketplace')
-        INSERT dbo.shipping_providers(owner_user_id,provider_name,slug,phone,email,description,status)
-        VALUES(@CarrierOwnerId,N'Giao Hàng Marketplace','giao-hang-marketplace','0900000099','carrier@marketplace.vn',N'Đơn vị giao nhận nội bộ dùng cho luồng báo giá demo.','ACTIVE');
-    DECLARE @MarketplaceProviderId BIGINT=(SELECT provider_id FROM dbo.shipping_providers WHERE slug='giao-hang-marketplace');
-    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='STANDARD')
-        INSERT dbo.shipping_services(provider_id,service_code,service_name,base_fee,estimated_min_days,estimated_max_days,max_weight,status)
-        VALUES(@MarketplaceProviderId,'STANDARD',N'Giao hàng tiêu chuẩn',30000,2,5,50,'ACTIVE');
-    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='EXPRESS')
-        INSERT dbo.shipping_services(provider_id,service_code,service_name,base_fee,estimated_min_days,estimated_max_days,max_weight,status)
-        VALUES(@MarketplaceProviderId,'EXPRESS',N'Giao hàng nhanh',55000,1,2,30,'ACTIVE');
-    DECLARE @StandardServiceId BIGINT=(SELECT service_id FROM dbo.shipping_services WHERE provider_id=@MarketplaceProviderId AND service_code='STANDARD');
-    IF NOT EXISTS(SELECT 1 FROM dbo.shipping_rate_rules WHERE service_id=@StandardServiceId AND origin_area=N'TOÀN QUỐC' AND destination_area=N'TOÀN QUỐC')
-        INSERT dbo.shipping_rate_rules(service_id,origin_area,destination_area,min_weight,max_weight,fee,extra_fee_per_kg,supports_cod,status)
-        VALUES(@StandardServiceId,N'TOÀN QUỐC',N'TOÀN QUỐC',0,50,30000,5000,1,'ACTIVE');
-
-    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_store_orders_store_status')
-        CREATE INDEX IX_store_orders_store_status ON dbo.store_orders(store_id,status,created_at DESC);
-    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_shipments_provider_status')
-        CREATE INDEX IX_shipments_provider_status ON dbo.shipments(provider_id,status,created_at DESC);
+    IF COL_LENGTH(N'dbo.shipping_services',N'code') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipping_services',N'service_code') IS NULL
+        EXEC sys.sp_rename N'dbo.shipping_services.code',N'service_code',N'COLUMN';
+    IF COL_LENGTH(N'dbo.shipments',N'shipped_at') IS NOT NULL
+       AND COL_LENGTH(N'dbo.shipments',N'picked_up_at') IS NULL
+        EXEC sys.sp_rename N'dbo.shipments.shipped_at',N'picked_up_at',N'COLUMN';
+    IF COL_LENGTH(N'dbo.order_status_histories',N'changed_at') IS NOT NULL
+       AND COL_LENGTH(N'dbo.order_status_histories',N'created_at') IS NULL
+        EXEC sys.sp_rename N'dbo.order_status_histories.changed_at',N'created_at',N'COLUMN';
 
     COMMIT TRANSACTION;
 END TRY
@@ -825,9 +711,168 @@ BEGIN CATCH
 END CATCH;
 GO
 
-IF EXISTS(SELECT 1 FROM dbo.order_items WHERE store_order_id IS NULL)
-    THROW 50101,N'Verification failed: order item without store order.',1;
-SELECT N'store_orders' entity,COUNT(*) row_count FROM dbo.store_orders
-UNION ALL SELECT N'shipping_providers',COUNT(*) FROM dbo.shipping_providers
+/* Stage B: create canonical objects and add columns. */
+BEGIN TRY
+    BEGIN TRANSACTION;
+    IF OBJECT_ID(N'dbo.shipping_providers',N'U') IS NULL
+        CREATE TABLE dbo.shipping_providers(provider_id BIGINT IDENTITY PRIMARY KEY,owner_user_id BIGINT NOT NULL,provider_name NVARCHAR(200) NOT NULL,slug VARCHAR(220) NOT NULL,phone VARCHAR(30) NULL,email VARCHAR(255) NULL,description NVARCHAR(MAX) NULL,status VARCHAR(20) NOT NULL DEFAULT('PENDING'),created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),updated_at DATETIME2 NULL);
+    IF OBJECT_ID(N'dbo.shipping_services',N'U') IS NULL
+        CREATE TABLE dbo.shipping_services(service_id BIGINT IDENTITY PRIMARY KEY,provider_id BIGINT NOT NULL,service_code VARCHAR(80) NOT NULL,service_name NVARCHAR(200) NOT NULL,base_fee DECIMAL(18,2) NOT NULL,estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,max_weight DECIMAL(18,3) NULL,status VARCHAR(20) NOT NULL DEFAULT('ACTIVE'));
+    IF OBJECT_ID(N'dbo.store_shipping_services',N'U') IS NULL
+        CREATE TABLE dbo.store_shipping_services(store_id BIGINT NOT NULL,service_id BIGINT NOT NULL,is_enabled BIT NOT NULL DEFAULT(1),fee_override DECIMAL(18,2) NULL,status VARCHAR(20) NOT NULL DEFAULT('ACTIVE'));
+
+    IF COL_LENGTH(N'dbo.shipping_providers',N'email') IS NULL ALTER TABLE dbo.shipping_providers ADD email VARCHAR(255) NULL;
+    IF COL_LENGTH(N'dbo.shipping_providers',N'description') IS NULL ALTER TABLE dbo.shipping_providers ADD description NVARCHAR(MAX) NULL;
+    IF COL_LENGTH(N'dbo.shipping_providers',N'created_at') IS NULL ALTER TABLE dbo.shipping_providers ADD created_at DATETIME2 NULL;
+    IF COL_LENGTH(N'dbo.shipping_providers',N'updated_at') IS NULL ALTER TABLE dbo.shipping_providers ADD updated_at DATETIME2 NULL;
+    IF COL_LENGTH(N'dbo.shipping_services',N'estimated_min_days') IS NULL ALTER TABLE dbo.shipping_services ADD estimated_min_days INT NULL;
+    IF COL_LENGTH(N'dbo.shipping_services',N'estimated_max_days') IS NULL ALTER TABLE dbo.shipping_services ADD estimated_max_days INT NULL;
+    IF COL_LENGTH(N'dbo.shipping_services',N'max_weight') IS NULL ALTER TABLE dbo.shipping_services ADD max_weight DECIMAL(18,3) NULL;
+    IF COL_LENGTH(N'dbo.store_shipping_services',N'status') IS NULL ALTER TABLE dbo.store_shipping_services ADD status VARCHAR(20) NULL;
+    IF COL_LENGTH(N'dbo.store_orders',N'row_version') IS NULL ALTER TABLE dbo.store_orders ADD row_version ROWVERSION;
+    IF COL_LENGTH(N'dbo.order_items',N'store_name_snapshot') IS NULL ALTER TABLE dbo.order_items ADD store_name_snapshot NVARCHAR(200) NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'shipping_fee') IS NULL ALTER TABLE dbo.shipments ADD shipping_fee DECIMAL(18,2) NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'pickup_address') IS NULL ALTER TABLE dbo.shipments ADD pickup_address NVARCHAR(500) NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'delivery_address') IS NULL ALTER TABLE dbo.shipments ADD delivery_address NVARCHAR(500) NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'estimated_delivery_at') IS NULL ALTER TABLE dbo.shipments ADD estimated_delivery_at DATETIME2 NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'created_at') IS NULL ALTER TABLE dbo.shipments ADD created_at DATETIME2 NULL;
+    IF COL_LENGTH(N'dbo.shipments',N'row_version') IS NULL ALTER TABLE dbo.shipments ADD row_version ROWVERSION;
+
+    IF OBJECT_ID(N'dbo.shipping_rate_rules',N'U') IS NULL
+        CREATE TABLE dbo.shipping_rate_rules(rule_id BIGINT IDENTITY PRIMARY KEY,service_id BIGINT NOT NULL,origin_area NVARCHAR(120) NOT NULL,destination_area NVARCHAR(120) NOT NULL,min_weight DECIMAL(18,3) NOT NULL,max_weight DECIMAL(18,3) NOT NULL,fee DECIMAL(18,2) NOT NULL,extra_fee_per_kg DECIMAL(18,2) NOT NULL DEFAULT(0),supports_cod BIT NOT NULL DEFAULT(1),status VARCHAR(20) NOT NULL DEFAULT('ACTIVE'));
+    IF OBJECT_ID(N'dbo.shipping_quotes',N'U') IS NULL
+        CREATE TABLE dbo.shipping_quotes(quote_id UNIQUEIDENTIFIER PRIMARY KEY,provider_id BIGINT NOT NULL,service_id BIGINT NOT NULL,fee DECIMAL(18,2) NOT NULL,estimated_min_days INT NOT NULL,estimated_max_days INT NOT NULL,expires_at DATETIME2 NOT NULL,status VARCHAR(20) NOT NULL DEFAULT('ACTIVE'),selected_at DATETIME2 NULL);
+    IF OBJECT_ID(N'dbo.shipment_status_histories',N'U') IS NULL
+        CREATE TABLE dbo.shipment_status_histories(history_id BIGINT IDENTITY PRIMARY KEY,shipment_id BIGINT NOT NULL,old_status VARCHAR(30) NULL,new_status VARCHAR(30) NOT NULL,changed_by_user_id BIGINT NOT NULL,note NVARCHAR(500) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()));
+    IF OBJECT_ID(N'dbo.audit_logs',N'U') IS NULL
+        CREATE TABLE dbo.audit_logs(audit_id BIGINT IDENTITY PRIMARY KEY,actor_user_id BIGINT NULL,action VARCHAR(100) NOT NULL,entity_name VARCHAR(100) NOT NULL,entity_id VARCHAR(100) NULL,before_json NVARCHAR(MAX) NULL,after_json NVARCHAR(MAX) NULL,ip_address VARCHAR(64) NULL,created_at DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()));
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* Stage C: backfill, validate, and rebuild canonical constraints/indexes. */
+BEGIN TRY
+    BEGIN TRANSACTION;
+    UPDATE dbo.shipping_providers SET status='SUSPENDED' WHERE status='INACTIVE';
+    UPDATE dbo.shipping_providers SET created_at=COALESCE(created_at,SYSUTCDATETIME());
+    IF COL_LENGTH(N'dbo.shipping_services',N'estimated_days') IS NOT NULL
+        EXEC sys.sp_executesql N'UPDATE dbo.shipping_services SET estimated_min_days=COALESCE(estimated_min_days,estimated_days),estimated_max_days=COALESCE(estimated_max_days,estimated_days);';
+    UPDATE dbo.shipping_services SET estimated_min_days=COALESCE(estimated_min_days,1),estimated_max_days=COALESCE(estimated_max_days,estimated_min_days,1);
+    UPDATE dbo.store_shipping_services SET status=CASE WHEN is_enabled=1 THEN 'ACTIVE' ELSE 'INACTIVE' END WHERE status IS NULL;
+    UPDATE oi SET store_name_snapshot=COALESCE(oi.store_name_snapshot,s.store_name)
+    FROM dbo.order_items oi JOIN dbo.product_skus sku ON sku.sku_id=oi.sku_id JOIN dbo.products p ON p.product_id=sku.product_id JOIN dbo.stores s ON s.store_id=p.store_id;
+    UPDATE sh SET shipping_fee=COALESCE(sh.shipping_fee,so.shipping_fee),pickup_address=COALESCE(sh.pickup_address,st.store_name),delivery_address=COALESCE(sh.delivery_address,o.shipping_address),created_at=COALESCE(sh.created_at,so.created_at)
+    FROM dbo.shipments sh JOIN dbo.store_orders so ON so.store_order_id=sh.store_order_id JOIN dbo.stores st ON st.store_id=so.store_id JOIN dbo.orders o ON o.order_id=so.order_id;
+
+    INSERT dbo.store_shipping_services(store_id,service_id,is_enabled,fee_override,status)
+    SELECT st.store_id,sv.service_id,1,NULL,'ACTIVE'
+    FROM dbo.stores st CROSS JOIN dbo.shipping_services sv
+    WHERE st.status='ACTIVE' AND sv.status='ACTIVE'
+      AND NOT EXISTS(SELECT 1 FROM dbo.store_shipping_services x WHERE x.store_id=st.store_id AND x.service_id=sv.service_id);
+
+    IF EXISTS(SELECT 1 FROM dbo.shipping_providers WHERE owner_user_id IS NULL) THROW 50211,N'Provider owner backfill failed.',1;
+    IF EXISTS(SELECT 1 FROM dbo.shipping_services WHERE estimated_min_days IS NULL OR estimated_max_days IS NULL) THROW 50212,N'Service ETA backfill failed.',1;
+    IF EXISTS(SELECT 1 FROM dbo.shipments WHERE shipping_fee IS NULL OR pickup_address IS NULL OR delivery_address IS NULL OR created_at IS NULL) THROW 50213,N'Shipment backfill failed.',1;
+
+    ALTER TABLE dbo.shipping_providers ALTER COLUMN owner_user_id BIGINT NOT NULL;
+    ALTER TABLE dbo.shipping_providers ALTER COLUMN slug VARCHAR(220) NOT NULL;
+    ALTER TABLE dbo.shipping_providers ALTER COLUMN phone VARCHAR(30) NULL;
+    ALTER TABLE dbo.shipping_providers ALTER COLUMN created_at DATETIME2 NOT NULL;
+    ALTER TABLE dbo.shipping_services ALTER COLUMN service_code VARCHAR(80) NOT NULL;
+    ALTER TABLE dbo.shipping_services ALTER COLUMN service_name NVARCHAR(200) NOT NULL;
+    ALTER TABLE dbo.shipping_services ALTER COLUMN estimated_min_days INT NOT NULL;
+    ALTER TABLE dbo.shipping_services ALTER COLUMN estimated_max_days INT NOT NULL;
+    ALTER TABLE dbo.store_shipping_services ALTER COLUMN status VARCHAR(20) NOT NULL;
+    ALTER TABLE dbo.shipments ALTER COLUMN tracking_code VARCHAR(100) NOT NULL;
+    ALTER TABLE dbo.shipments ALTER COLUMN shipping_fee DECIMAL(18,2) NOT NULL;
+    ALTER TABLE dbo.shipments ALTER COLUMN pickup_address NVARCHAR(500) NOT NULL;
+    ALTER TABLE dbo.shipments ALTER COLUMN delivery_address NVARCHAR(500) NOT NULL;
+    ALTER TABLE dbo.shipments ALTER COLUMN created_at DATETIME2 NOT NULL;
+
+    IF NOT EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'PK_shipping_services') ALTER TABLE dbo.shipping_services ADD CONSTRAINT PK_shipping_services PRIMARY KEY(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'PK_store_shipping_services') ALTER TABLE dbo.store_shipping_services ADD CONSTRAINT PK_store_shipping_services PRIMARY KEY(store_id,service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'UQ_shipping_providers_slug') ALTER TABLE dbo.shipping_providers ADD CONSTRAINT UQ_shipping_providers_slug UNIQUE(slug);
+    IF NOT EXISTS(SELECT 1 FROM sys.key_constraints WHERE name=N'UQ_shipping_services_code') ALTER TABLE dbo.shipping_services ADD CONSTRAINT UQ_shipping_services_code UNIQUE(provider_id,service_code);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_providers_users') ALTER TABLE dbo.shipping_providers WITH CHECK ADD CONSTRAINT FK_shipping_providers_users FOREIGN KEY(owner_user_id) REFERENCES dbo.users(user_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_services_providers') ALTER TABLE dbo.shipping_services WITH CHECK ADD CONSTRAINT FK_shipping_services_providers FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_store_shipping_services_stores') ALTER TABLE dbo.store_shipping_services WITH CHECK ADD CONSTRAINT FK_store_shipping_services_stores FOREIGN KEY(store_id) REFERENCES dbo.stores(store_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_store_shipping_services_services') ALTER TABLE dbo.store_shipping_services WITH CHECK ADD CONSTRAINT FK_store_shipping_services_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_store_orders_shipping_services') ALTER TABLE dbo.store_orders WITH CHECK ADD CONSTRAINT FK_store_orders_shipping_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipments_services') ALTER TABLE dbo.shipments WITH CHECK ADD CONSTRAINT FK_shipments_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_rate_rules_services') ALTER TABLE dbo.shipping_rate_rules WITH CHECK ADD CONSTRAINT FK_shipping_rate_rules_services FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_quotes_provider') ALTER TABLE dbo.shipping_quotes WITH CHECK ADD CONSTRAINT FK_shipping_quotes_provider FOREIGN KEY(provider_id) REFERENCES dbo.shipping_providers(provider_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipping_quotes_service') ALTER TABLE dbo.shipping_quotes WITH CHECK ADD CONSTRAINT FK_shipping_quotes_service FOREIGN KEY(service_id) REFERENCES dbo.shipping_services(service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipment_histories_shipments') ALTER TABLE dbo.shipment_status_histories WITH CHECK ADD CONSTRAINT FK_shipment_histories_shipments FOREIGN KEY(shipment_id) REFERENCES dbo.shipments(shipment_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_shipment_histories_users') ALTER TABLE dbo.shipment_status_histories WITH CHECK ADD CONSTRAINT FK_shipment_histories_users FOREIGN KEY(changed_by_user_id) REFERENCES dbo.users(user_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_audit_logs_users') ALTER TABLE dbo.audit_logs WITH CHECK ADD CONSTRAINT FK_audit_logs_users FOREIGN KEY(actor_user_id) REFERENCES dbo.users(user_id);
+
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_providers_status') ALTER TABLE dbo.shipping_providers DROP CONSTRAINT CK_shipping_providers_status;
+    ALTER TABLE dbo.shipping_providers WITH CHECK ADD CONSTRAINT CK_shipping_providers_status CHECK(status IN('PENDING','ACTIVE','SUSPENDED'));
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_services_fee') ALTER TABLE dbo.shipping_services DROP CONSTRAINT CK_shipping_services_fee;
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_services_days') ALTER TABLE dbo.shipping_services DROP CONSTRAINT CK_shipping_services_days;
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_services_status') ALTER TABLE dbo.shipping_services DROP CONSTRAINT CK_shipping_services_status;
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_services_values') ALTER TABLE dbo.shipping_services DROP CONSTRAINT CK_shipping_services_values;
+    ALTER TABLE dbo.shipping_services WITH CHECK ADD CONSTRAINT CK_shipping_services_values CHECK(base_fee>=0 AND estimated_min_days>0 AND estimated_max_days>=estimated_min_days AND (max_weight IS NULL OR max_weight>0));
+    ALTER TABLE dbo.shipping_services WITH CHECK ADD CONSTRAINT CK_shipping_services_status CHECK(status IN('ACTIVE','INACTIVE'));
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipments_status') ALTER TABLE dbo.shipments DROP CONSTRAINT CK_shipments_status;
+    ALTER TABLE dbo.shipments WITH CHECK ADD CONSTRAINT CK_shipments_status CHECK(status IN('CREATED','READY_FOR_PICKUP','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'));
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_store_shipping_services_values') ALTER TABLE dbo.store_shipping_services DROP CONSTRAINT CK_store_shipping_services_values;
+    ALTER TABLE dbo.store_shipping_services WITH CHECK ADD CONSTRAINT CK_store_shipping_services_values CHECK(status IN('ACTIVE','INACTIVE') AND (fee_override IS NULL OR fee_override>=0));
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_rate_rules_values') ALTER TABLE dbo.shipping_rate_rules DROP CONSTRAINT CK_shipping_rate_rules_values;
+    ALTER TABLE dbo.shipping_rate_rules WITH CHECK ADD CONSTRAINT CK_shipping_rate_rules_values CHECK(status IN('ACTIVE','INACTIVE') AND min_weight>=0 AND max_weight>=min_weight AND fee>=0 AND extra_fee_per_kg>=0);
+    IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_shipping_quotes_values') ALTER TABLE dbo.shipping_quotes DROP CONSTRAINT CK_shipping_quotes_values;
+    ALTER TABLE dbo.shipping_quotes WITH CHECK ADD CONSTRAINT CK_shipping_quotes_values CHECK(status IN('ACTIVE','SELECTED','EXPIRED','CANCELLED') AND fee>=0 AND estimated_min_days>0 AND estimated_max_days>=estimated_min_days);
+    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.shipping_providers') AND name=N'UX_shipping_providers_owner') CREATE UNIQUE INDEX UX_shipping_providers_owner ON dbo.shipping_providers(owner_user_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.store_shipping_services') AND name=N'UX_store_shipping_services_store_service') CREATE UNIQUE INDEX UX_store_shipping_services_store_service ON dbo.store_shipping_services(store_id,service_id);
+    IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.shipments') AND name=N'IX_shipments_provider_status') CREATE INDEX IX_shipments_provider_status ON dbo.shipments(provider_id,status,created_at DESC);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* Canonical verification: fail deployment with a specific invariant. */
+IF COL_LENGTH(N'dbo.shipping_providers',N'owner_user_id') IS NULL THROW 50301,N'Missing shipping_providers.owner_user_id.',1;
+IF COL_LENGTH(N'dbo.shipping_services',N'service_id') IS NULL THROW 50302,N'Missing shipping_services.service_id.',1;
+IF COL_LENGTH(N'dbo.store_shipping_services',N'service_id') IS NULL THROW 50303,N'Missing store_shipping_services.service_id.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipping_providers p LEFT JOIN dbo.users u ON u.user_id=p.owner_user_id WHERE u.user_id IS NULL) THROW 50304,N'Orphan provider owner.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipping_services s LEFT JOIN dbo.shipping_providers p ON p.provider_id=s.provider_id WHERE p.provider_id IS NULL) THROW 50305,N'Orphan shipping service.',1;
+IF EXISTS(SELECT 1 FROM dbo.store_shipping_services x LEFT JOIN dbo.stores s ON s.store_id=x.store_id LEFT JOIN dbo.shipping_services v ON v.service_id=x.service_id WHERE s.store_id IS NULL OR v.service_id IS NULL) THROW 50306,N'Orphan store shipping service.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipping_rate_rules r LEFT JOIN dbo.shipping_services s ON s.service_id=r.service_id WHERE s.service_id IS NULL) THROW 50307,N'Orphan shipping rate.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipping_quotes q LEFT JOIN dbo.shipping_services s ON s.service_id=q.service_id LEFT JOIN dbo.shipping_providers p ON p.provider_id=q.provider_id WHERE s.service_id IS NULL OR p.provider_id IS NULL) THROW 50308,N'Orphan shipping quote.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipping_quotes q JOIN dbo.shipping_services s ON s.service_id=q.service_id WHERE q.provider_id<>s.provider_id) THROW 50320,N'Shipping quote provider does not own service.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipments sh LEFT JOIN dbo.store_orders so ON so.store_order_id=sh.store_order_id LEFT JOIN dbo.shipping_services sv ON sv.service_id=sh.service_id LEFT JOIN dbo.shipping_providers p ON p.provider_id=sh.provider_id WHERE so.store_order_id IS NULL OR sv.service_id IS NULL OR p.provider_id IS NULL) THROW 50309,N'Orphan shipment.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipments sh JOIN dbo.shipping_services sv ON sv.service_id=sh.service_id WHERE sh.provider_id<>sv.provider_id) THROW 50321,N'Shipment provider does not own service.',1;
+IF EXISTS(SELECT 1 FROM dbo.shipment_status_histories h LEFT JOIN dbo.shipments sh ON sh.shipment_id=h.shipment_id LEFT JOIN dbo.users u ON u.user_id=h.changed_by_user_id WHERE sh.shipment_id IS NULL OR u.user_id IS NULL) THROW 50322,N'Orphan shipment history.',1;
+IF EXISTS(SELECT 1 FROM dbo.order_status_histories h LEFT JOIN dbo.store_orders so ON so.store_order_id=h.store_order_id LEFT JOIN dbo.users u ON u.user_id=h.changed_by_user_id WHERE so.store_order_id IS NULL OR (h.changed_by_user_id IS NOT NULL AND u.user_id IS NULL)) THROW 50323,N'Orphan order history.',1;
+IF EXISTS(SELECT slug FROM dbo.shipping_providers GROUP BY slug HAVING COUNT(*)>1) THROW 50310,N'Duplicate provider slug.',1;
+IF EXISTS(SELECT provider_id,service_code FROM dbo.shipping_services GROUP BY provider_id,service_code HAVING COUNT(*)>1) THROW 50311,N'Duplicate provider service code.',1;
+IF EXISTS(SELECT store_id,service_id FROM dbo.store_shipping_services GROUP BY store_id,service_id HAVING COUNT(*)>1) THROW 50312,N'Duplicate store service mapping.',1;
+IF EXISTS(SELECT tracking_code FROM dbo.shipments GROUP BY tracking_code HAVING COUNT(*)>1) THROW 50313,N'Duplicate tracking code.',1;
+IF EXISTS(SELECT 1 FROM dbo.store_orders WHERE total_amount<>subtotal-discount_amount+shipping_fee) THROW 50314,N'Invalid StoreOrder total.',1;
+IF EXISTS(
+    SELECT 1
+    FROM dbo.orders o
+    OUTER APPLY(SELECT COALESCE(SUM(CASE WHEN so.status<>'CANCELLED' THEN so.total_amount ELSE 0 END),0) payable FROM dbo.store_orders so WHERE so.order_id=o.order_id) x
+    WHERE o.total_amount<>x.payable
+) THROW 50324,N'Parent Order total differs from payable StoreOrders.',1;
+IF EXISTS(SELECT 1 FROM dbo.order_items WHERE store_order_id IS NULL) THROW 50315,N'OrderItem without StoreOrder.',1;
+IF EXISTS(SELECT product_id FROM dbo.product_images WHERE is_primary=1 GROUP BY product_id HAVING COUNT(*)>1) THROW 50316,N'Multiple primary product images.',1;
+IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE is_disabled=1 OR is_not_trusted=1) THROW 50317,N'Disabled or untrusted foreign key.',1;
+IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE is_disabled=1 OR is_not_trusted=1) THROW 50318,N'Disabled or untrusted check constraint.',1;
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE is_disabled=1) THROW 50319,N'Disabled index.',1;
+
+SELECT N'shipping_providers' entity,COUNT(*) row_count FROM dbo.shipping_providers
+UNION ALL SELECT N'shipping_services',COUNT(*) FROM dbo.shipping_services
+UNION ALL SELECT N'store_shipping_services',COUNT(*) FROM dbo.store_shipping_services
+UNION ALL SELECT N'shipping_rate_rules',COUNT(*) FROM dbo.shipping_rate_rules
+UNION ALL SELECT N'shipping_quotes',COUNT(*) FROM dbo.shipping_quotes
 UNION ALL SELECT N'shipments',COUNT(*) FROM dbo.shipments;
 GO

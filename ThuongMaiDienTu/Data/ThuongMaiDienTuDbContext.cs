@@ -22,6 +22,7 @@ public partial class ThuongMaiDienTuDbContext : DbContext
     public virtual DbSet<StoreOrder> StoreOrders { get; set; }
     public virtual DbSet<ShippingProvider> ShippingProviders { get; set; }
     public virtual DbSet<ShippingService> ShippingServices { get; set; }
+    public virtual DbSet<StoreShippingService> StoreShippingServices { get; set; }
     public virtual DbSet<ShippingRateRule> ShippingRateRules { get; set; }
     public virtual DbSet<ShippingQuote> ShippingQuotes { get; set; }
     public virtual DbSet<Shipment> Shipments { get; set; }
@@ -120,6 +121,17 @@ public partial class ThuongMaiDienTuDbContext : DbContext
         modelBuilder.Entity<ShippingService>(entity =>
             entity.HasOne(e => e.Provider).WithMany(e => e.Services)
                 .HasForeignKey(e => e.ProviderId).OnDelete(DeleteBehavior.NoAction));
+        modelBuilder.Entity<StoreShippingService>(entity =>
+        {
+            entity.HasKey(e => new { e.StoreId, e.ServiceId })
+                .HasName("PK_store_shipping_services");
+            entity.HasOne(e => e.Store).WithMany()
+                .HasForeignKey(e => e.StoreId).OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_store_shipping_services_stores");
+            entity.HasOne(e => e.Service).WithMany(e => e.StoreMappings)
+                .HasForeignKey(e => e.ServiceId).OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_store_shipping_services_services");
+        });
         modelBuilder.Entity<ShippingRateRule>(entity =>
             entity.HasOne(e => e.Service).WithMany(e => e.RateRules)
                 .HasForeignKey(e => e.ServiceId).OnDelete(DeleteBehavior.NoAction));
