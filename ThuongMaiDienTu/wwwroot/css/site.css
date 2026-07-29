@@ -21,6 +21,25 @@ body {
   margin-bottom: 60px;
 }
 
+.marketplace-hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255, 193, 7, .42), transparent 28%),
+    linear-gradient(135deg, #16302b, #285f53);
+}
+
+.hero-mark {
+  display: inline-grid;
+  width: 12rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 35% 65% 58% 42%;
+  background: rgba(255, 255, 255, .12);
+  font-size: 4rem;
+  font-weight: 800;
+}
+
 .product-card {
   overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.15s ease;

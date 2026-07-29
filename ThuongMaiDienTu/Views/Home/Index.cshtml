@@ -1,8 +1,100 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model ThuongMaiDienTu.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Nội Thất Hub — Marketplace cho mọi không gian";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@section Meta {
+    <meta name="description" content="Khám phá đồ gia dụng và nội thất từ nhiều gian hàng uy tín trên Nội Thất Hub." />
+}
+
+<section class="marketplace-hero rounded-4 p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge text-bg-warning mb-3">Marketplace đa gian hàng</span>
+            <h1 class="display-5 fw-bold">Một nơi, mọi ý tưởng cho tổ ấm</h1>
+            <p class="lead">So sánh sản phẩm, chọn gian hàng và dịch vụ giao nhận phù hợp trong một lần mua.</p>
+            <form asp-controller="Products" asp-action="Index" method="get" class="d-flex gap-2">
+                <input name="searchTerm" class="form-control form-control-lg"
+                       placeholder="Tìm nội thất, đồ gia dụng, thương hiệu..." />
+                <button class="btn btn-warning btn-lg">Tìm kiếm</button>
+            </form>
+        </div>
+        <div class="col-lg-5 text-center">
+            <div class="hero-mark" aria-hidden="true">NH</div>
+        </div>
+    </div>
+</section>
+
+<nav class="d-flex flex-wrap gap-2 mb-5" aria-label="Danh mục nổi bật">
+    @foreach (var category in Model.Categories)
+    {
+        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@category.CategoryId"
+           class="btn btn-outline-dark rounded-pill">@category.CategoryName</a>
+    }
+</nav>
+
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h3 mb-0">Sản phẩm mới</h2>
+        <a asp-controller="Products" asp-action="Index">Xem catalog →</a>
+    </div>
+    <div class="row g-3">
+        @foreach (var product in Model.NewProducts)
+        {
+            <div class="col-6 col-lg-3">
+                <article class="card product-card h-100 shadow-sm">
+                    <div class="product-image-wrap">
+                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" alt="@product.ProductName" class="product-card-image" />
+                        }
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">@product.StoreName</small>
+                        <h3 class="h6 mt-1">@product.ProductName</h3>
+                        <strong>@product.Price.ToString("N0") đ</strong>
+                    </div>
+                    <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId"
+                       class="stretched-link"><span class="visually-hidden">Xem @product.ProductName</span></a>
+                </article>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="row g-4 mb-5">
+    <div class="col-lg-8">
+        <h2 class="h3">Gian hàng nổi bật</h2>
+        <div class="row g-3">
+            @foreach (var store in Model.FeaturedStores)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 bg-light">
+                        <div class="card-body">
+                            <h3 class="h5">@store.StoreName</h3>
+                            <p class="mb-0 text-muted">@store.ProductCount sản phẩm đang bán</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <h2 class="h3">Đối tác giao nhận</h2>
+        <div class="card border-0 bg-dark text-white">
+            <div class="card-body">
+                @foreach (var carrier in Model.Carriers)
+                {
+                    <div class="py-2 border-bottom border-secondary">@carrier</div>
+                }
+                <p class="small mt-3 mb-0">Phí giao hàng được tính từ dịch vụ và bảng giá, không dùng mức phí cố định.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3 text-center mb-4">
+    <div class="col-md-4"><div class="p-4 border rounded-3"><strong>Đa gian hàng</strong><br /><span class="text-muted">Một giỏ hàng, nhiều cửa hàng</span></div></div>
+    <div class="col-md-4"><div class="p-4 border rounded-3"><strong>Giá minh bạch</strong><br /><span class="text-muted">Tổng tiền tính lại tại server</span></div></div>
+    <div class="col-md-4"><div class="p-4 border rounded-3"><strong>Theo dõi vận chuyển</strong><br /><span class="text-muted">Shipment riêng cho từng gian hàng</span></div></div>
+</section>
