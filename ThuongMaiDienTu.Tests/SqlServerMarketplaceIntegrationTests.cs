@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ThuongMaiDienTu.Data;
 using ThuongMaiDienTu.Services;
+using ThuongMaiDienTu.Controllers;
+using ThuongMaiDienTu.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 using Xunit;
 
 namespace ThuongMaiDienTu.Tests;
@@ -67,6 +70,30 @@ public sealed class SqlServerMarketplaceIntegrationTests
         Assert.Equal(0, badForeignKeys);
         Assert.Equal(0, badChecks);
         Assert.Equal(0, disabledIndexes);
+    }
+
+    [Fact]
+    public async Task PublicStorePage_ReturnsOnlyAnActiveStoreAndNormalizesPage()
+    {
+        await using var context = CreateContext();
+        var store = await context.Stores.AsNoTracking().FirstAsync(item => item.Status == "ACTIVE");
+        var result = await new StoresController(context).Details(store.Slug, sort: "invalid", page: 0);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<PublicStorePageViewModel>(view.Model);
+        Assert.Equal(store.StoreName, model.Store.StoreName);
+        Assert.Equal(1, model.Page);
+        Assert.All(model.Products, item => Assert.True(item.CurrentPrice > 0));
+    }
+
+    [Fact]
+    public async Task PublicStorePage_ReturnsNotFoundForNonActiveStore()
+    {
+        await using var context = CreateContext();
+        var store = await context.Stores.AsNoTracking().SingleAsync(item => item.Status != "ACTIVE");
+        var result = await new StoresController(context).Details(store.Slug);
+
+        Assert.IsType<NotFoundResult>(result);
     }
 
     private static ThuongMaiDienTuDbContext CreateContext() =>

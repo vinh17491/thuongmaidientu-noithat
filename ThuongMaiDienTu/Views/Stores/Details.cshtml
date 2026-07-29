@@ -1,0 +1,37 @@
+@model ThuongMaiDienTu.ViewModels.PublicStorePageViewModel
+@{
+    var canonical = Url.Action("Details", "Stores", new { storeSlug = Model.StoreSlug });
+    ViewData["Title"] = Model.Store.StoreName;
+}
+@section Meta {
+    <meta name="description" content="@(Model.Store.Description ?? $"Khám phá sản phẩm từ {Model.Store.StoreName}.")" />
+    <link rel="canonical" href="@canonical" />
+    <meta property="og:title" content="@Model.Store.StoreName" />
+    <meta property="og:description" content="@(Model.Store.Description ?? $"Khám phá sản phẩm từ {Model.Store.StoreName}.")" />
+    <meta property="og:url" content="@canonical" />
+}
+<header class="store-header rounded-4 p-4 mb-4 bg-light">
+    <div class="d-flex align-items-center gap-3">
+        <div class="hero-mark" aria-hidden="true">@Model.Store.StoreName[..1].ToUpperInvariant()</div>
+        <div><h1 class="mb-1">@Model.Store.StoreName</h1><span class="badge text-bg-success">Đang hoạt động</span></div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Store.Description)) { <p class="mt-3 mb-2">@Model.Store.Description</p> }
+    <div class="small text-muted">@Model.Store.ProductCount sản phẩm · @Model.Store.AverageRating.ToString("0.0")/5 (@Model.Store.ReviewCount đánh giá) · Tham gia @Model.Store.CreatedAt.ToString("dd/MM/yyyy")</div>
+</header>
+<form method="get" class="row g-2 mb-4" aria-label="Lọc sản phẩm trong gian hàng">
+    <div class="col-lg-3"><input name="search" value="@Model.Search" maxlength="100" class="form-control" placeholder="Tìm sản phẩm" /></div>
+    <div class="col-lg-2"><select name="categoryId" class="form-select"><option value="">Danh mục</option>@foreach (var category in Model.Categories) { <option selected="@(Model.CategoryId == category.CategoryId ? "selected" : null)" value="@category.CategoryId">@category.CategoryName</option> }</select></div>
+    <div class="col"><input name="minPrice" value="@Model.MinPrice" type="number" min="0" class="form-control" placeholder="Giá từ" /></div>
+    <div class="col"><input name="maxPrice" value="@Model.MaxPrice" type="number" min="0" class="form-control" placeholder="Giá đến" /></div>
+    <div class="col"><select name="minimumRating" class="form-select"><option value="">Rating</option>@for (var rating = 5; rating >= 1; rating--) { <option selected="@(Model.MinimumRating == rating ? "selected" : null)" value="@rating">@rating+ sao</option> }</select></div>
+    <div class="col-lg-2"><select name="sort" class="form-select"><option selected="@(Model.Sort == "newest" ? "selected" : null)" value="newest">Mới nhất</option><option selected="@(Model.Sort == "price-asc" ? "selected" : null)" value="price-asc">Giá tăng</option><option selected="@(Model.Sort == "price-desc" ? "selected" : null)" value="price-desc">Giá giảm</option><option selected="@(Model.Sort == "rating" ? "selected" : null)" value="rating">Rating cao</option><option selected="@(Model.Sort == "name" ? "selected" : null)" value="name">Tên A-Z</option></select></div>
+    <div class="col-auto form-check align-self-center"><input name="inStock" value="true" @(Model.InStock ? "checked" : null) class="form-check-input" type="checkbox" id="inStock" /><label for="inStock" class="form-check-label">Còn hàng</label></div>
+    <div class="col-auto form-check align-self-center"><input name="onSale" value="true" @(Model.OnSale ? "checked" : null) class="form-check-input" type="checkbox" id="onSale" /><label for="onSale" class="form-check-label">Khuyến mãi</label></div>
+    <div class="col-auto"><button class="btn btn-dark">Lọc</button></div>
+</form>
+@if (Model.Products.Count == 0) { <div class="alert alert-info">Không tìm thấy sản phẩm phù hợp trong gian hàng này.</div> }
+else { <div class="row g-3">@foreach (var product in Model.Products) { <div class="col-6 col-lg-3"><article class="card product-card h-100 shadow-sm"><div class="product-image-wrap">@if (!string.IsNullOrWhiteSpace(product.ImageUrl)) { <img src="@product.ImageUrl" alt="@product.AltText" class="product-card-image" /> } else { <div class="product-image-placeholder text-muted">Chưa có ảnh</div> }</div><div class="card-body"><small class="text-muted">@product.CategoryName</small><h2 class="h6 mt-1">@product.ProductName</h2>@if (product.IsOnSale) { <small class="text-muted text-decoration-line-through d-block">@product.OriginalPrice.ToString("N0") đ</small> }<strong class="@(product.IsOnSale ? "text-danger" : null)">@product.CurrentPrice.ToString("N0") đ</strong><div class="small text-muted mt-1">★ @product.AverageRating.ToString("0.0") (@product.ReviewCount) · @(product.StockQuantity > 0 ? "Còn hàng" : "Hết hàng")</div></div><a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId" class="stretched-link"><span class="visually-hidden">Xem @product.ProductName</span></a></article></div> }</div> }
+<nav class="d-flex justify-content-between align-items-center mt-4" aria-label="Phân trang">
+    <span>Trang @Model.Page/@Model.TotalPages · @Model.TotalProducts sản phẩm</span>
+    <span class="d-flex gap-2">@if (Model.Page > 1) { <a class="btn btn-outline-secondary" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId" asp-route-minPrice="@Model.MinPrice" asp-route-maxPrice="@Model.MaxPrice" asp-route-minimumRating="@Model.MinimumRating" asp-route-inStock="@Model.InStock" asp-route-onSale="@Model.OnSale" asp-route-sort="@Model.Sort">Trước</a> } @if (Model.Page < Model.TotalPages) { <a class="btn btn-outline-secondary" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId" asp-route-minPrice="@Model.MinPrice" asp-route-maxPrice="@Model.MaxPrice" asp-route-minimumRating="@Model.MinimumRating" asp-route-inStock="@Model.InStock" asp-route-onSale="@Model.OnSale" asp-route-sort="@Model.Sort">Sau</a> }</span>
+</nav>
