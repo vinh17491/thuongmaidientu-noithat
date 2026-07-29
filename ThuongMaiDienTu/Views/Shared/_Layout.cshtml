@@ -1,9 +1,14 @@
 ﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
+    @{ var path = Context.Request.Path.Value ?? string.Empty; var privatePath = path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Seller", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Carrier", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Cart", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Checkout", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Orders", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ProductAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/OrderAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ReviewAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Dashboard", StringComparison.OrdinalIgnoreCase); }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Nội Thất Hub</title>
+    <meta name="description" content="@(ViewData["Description"] ?? "Marketplace nội thất và đồ gia dụng đa gian hàng.")" />
+    @if (ViewData["CanonicalPath"] is string canonicalPath) { <link rel="canonical" href="@canonicalPath" /> }
+    @if (ViewData["Robots"] is string robots) { <meta name="robots" content="@robots" /> }
+    @if (ViewData["Robots"] is not string && privatePath) { <meta name="robots" content="noindex,nofollow" /> }
     @await RenderSectionAsync("Meta", required: false)
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />

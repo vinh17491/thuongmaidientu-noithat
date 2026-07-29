@@ -1,7 +1,10 @@
 @model ThuongMaiDienTu.ViewModels.PublicStorePageViewModel
+@using System.Text.Json
 @{
     var canonical = Url.Action("Details", "Stores", new { storeSlug = Model.StoreSlug });
     ViewData["Title"] = Model.Store.StoreName;
+    ViewData["Robots"] = Context.Request.Query.Count > 0 ? "noindex,follow" : "index,follow";
+    var breadcrumbData = new Dictionary<string, object?> { ["@context"] = "https://schema.org", ["@type"] = "BreadcrumbList", ["itemListElement"] = new[] { new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Trang chủ", ["item"] = "/" }, new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = Model.Store.StoreName, ["item"] = $"/cua-hang/{Model.StoreSlug}" } } };
 }
 @section Meta {
     <meta name="description" content="@(Model.Store.Description ?? $"Khám phá sản phẩm từ {Model.Store.StoreName}.")" />
@@ -9,6 +12,7 @@
     <meta property="og:title" content="@Model.Store.StoreName" />
     <meta property="og:description" content="@(Model.Store.Description ?? $"Khám phá sản phẩm từ {Model.Store.StoreName}.")" />
     <meta property="og:url" content="@canonical" />
+    <script type="application/ld+json">@Html.Raw(JsonSerializer.Serialize(breadcrumbData))</script>
 }
 <header class="store-header rounded-4 p-4 mb-4 bg-light">
     <div class="d-flex align-items-center gap-3">

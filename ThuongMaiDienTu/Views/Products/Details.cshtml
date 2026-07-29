@@ -1,21 +1,49 @@
 @model ThuongMaiDienTu.ViewModels.ProductDetailsViewModel
+@using System.Text.Json
 
 @{
     ViewData["Title"] = string.IsNullOrWhiteSpace(Model.SeoTitle)
         ? Model.ProductName
         : Model.SeoTitle;
+    ViewData["Description"] = Model.SeoDescription ?? Model.ShortDescription ?? $"Khám phá {Model.ProductName}.";
+    ViewData["CanonicalPath"] = $"/san-pham/{Model.Slug}";
+    var structuredData = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Product",
+        ["name"] = Model.ProductName,
+        ["description"] = Model.ShortDescription,
+        ["image"] = string.IsNullOrWhiteSpace(Model.ImageUrl) ? null : new[] { Model.ImageUrl },
+        ["sku"] = Model.SkuCode,
+        ["brand"] = string.IsNullOrWhiteSpace(Model.Brand) ? null : new Dictionary<string, object?> { ["@type"] = "Brand", ["name"] = Model.Brand },
+        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["priceCurrency"] = "VND", ["price"] = Model.CurrentPrice, ["availability"] = Model.IsInStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", ["url"] = $"/san-pham/{Model.Slug}" },
+        ["aggregateRating"] = Model.ReviewCount > 0 ? new Dictionary<string, object?> { ["@type"] = "AggregateRating", ["ratingValue"] = Model.AverageRating, ["reviewCount"] = Model.ReviewCount } : null
+    };
+    var breadcrumbData = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org", ["@type"] = "BreadcrumbList",
+        ["itemListElement"] = new[]
+        {
+            new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Trang chủ", ["item"] = "/" },
+            new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = Model.CategoryName, ["item"] = $"/danh-muc/{Model.CategorySlug}" },
+            new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 3, ["name"] = Model.ProductName, ["item"] = $"/san-pham/{Model.Slug}" }
+        }
+    };
 }
 
 @section Meta {
-    @if (!string.IsNullOrWhiteSpace(Model.SeoDescription))
-    {
-        <meta name="description" content="@Model.SeoDescription" />
-    }
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content="@ViewData["Title"]" />
+    <meta property="og:description" content="@ViewData["Description"]" />
+    <meta property="og:url" content="/san-pham/@Model.Slug" />
+    <script type="application/ld+json">@Html.Raw(JsonSerializer.Serialize(structuredData))</script>
+    <script type="application/ld+json">@Html.Raw(JsonSerializer.Serialize(breadcrumbData))</script>
 }
 
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Sản phẩm</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Products" asp-action="Index">Sản phẩm</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Categories" asp-action="Details" asp-route-categorySlug="@Model.CategorySlug">@Model.CategoryName</a></li>
         <li class="breadcrumb-item active" aria-current="page">@Model.ProductName</li>
     </ol>
 </nav>

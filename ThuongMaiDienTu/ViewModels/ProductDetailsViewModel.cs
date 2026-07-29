@@ -15,6 +15,7 @@ public class ProductDetailsViewModel
     public string? Description { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;
+    public string CategorySlug { get; set; } = string.Empty;
 
     public string StoreName { get; set; } = string.Empty;
 

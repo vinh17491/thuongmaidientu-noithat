@@ -58,7 +58,7 @@ public sealed class StoresController(ThuongMaiDienTuDbContext context) : Control
             .Where(product => product.StoreId == store.StoreId && product.Status == "ACTIVE" && product.Category.Status == "ACTIVE" && product.ProductSkus.Any(sku => sku.Status == "ACTIVE"))
             .Select(product => new
             {
-                product.ProductId, product.ProductName, product.CreatedAt,
+                product.ProductId, product.ProductName, product.Slug, product.CreatedAt,
                 CategoryId = product.CategoryId, CategoryName = product.Category.CategoryName,
                 BestSku = product.ProductSkus.Where(sku => sku.Status == "ACTIVE")
                     .OrderBy(sku => sku.SalePrice.HasValue && sku.SalePrice > 0 && sku.SalePrice < sku.Price && (!sku.SaleStart.HasValue || sku.SaleStart <= now) && (!sku.SaleEnd.HasValue || sku.SaleEnd >= now) ? sku.SalePrice : sku.Price)
@@ -92,7 +92,7 @@ public sealed class StoresController(ThuongMaiDienTuDbContext context) : Control
         var cards = rows.Select(row =>
         {
             var price = ProductPricingHelper.Calculate(row.BestSku.Price, row.BestSku.SalePrice, row.BestSku.SaleStart, row.BestSku.SaleEnd, now);
-            return new PublicStoreProductCardViewModel { ProductId = row.ProductId, ProductName = row.ProductName, CategoryName = row.CategoryName, ImageUrl = row.Image?.ImageUrl, AltText = row.Image?.AltText ?? row.ProductName, OriginalPrice = row.BestSku.Price, CurrentPrice = price.CurrentPrice, IsOnSale = price.IsOnSale, DiscountPercent = price.DiscountPercent, AverageRating = row.AverageRating, ReviewCount = row.ReviewCount, StockQuantity = row.BestSku.StockQuantity };
+            return new PublicStoreProductCardViewModel { ProductId = row.ProductId, ProductName = row.ProductName, Slug = row.Slug, CategoryName = row.CategoryName, ImageUrl = row.Image?.ImageUrl, AltText = row.Image?.AltText ?? row.ProductName, OriginalPrice = row.BestSku.Price, CurrentPrice = price.CurrentPrice, IsOnSale = price.IsOnSale, DiscountPercent = price.DiscountPercent, AverageRating = row.AverageRating, ReviewCount = row.ReviewCount, StockQuantity = row.BestSku.StockQuantity };
         }).ToList();
         var categories = await context.Products.AsNoTracking().Where(product => product.StoreId == store.StoreId && product.Status == "ACTIVE" && product.Category.Status == "ACTIVE" && product.ProductSkus.Any(sku => sku.Status == "ACTIVE")).Select(product => new PublicStoreCategoryViewModel { CategoryId = product.CategoryId, CategoryName = product.Category.CategoryName }).Distinct().OrderBy(item => item.CategoryName).ToListAsync(cancellationToken);
         return View(new PublicStorePageViewModel { StoreSlug = normalizedSlug, Store = new PublicStoreHeaderViewModel { StoreName = store.StoreName, Description = store.Description, CreatedAt = store.CreatedAt, ProductCount = store.ProductCount, AverageRating = reviewSummary?.Average ?? 0, ReviewCount = reviewSummary?.Count ?? 0 }, Search = search, CategoryId = categoryId, MinPrice = minPrice, MaxPrice = maxPrice, MinimumRating = minimumRating, InStock = inStock, OnSale = onSale, Sort = sort, Page = page, PageSize = PageSize, TotalProducts = total, TotalPages = totalPages, Categories = categories, Products = cards });

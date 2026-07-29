@@ -18,7 +18,7 @@ public class ProductsController : Controller
         _context = context;
     }
 
-    [HttpGet]
+    [HttpGet("/san-pham")]
     public async Task<IActionResult> Index(ProductCatalogQuery query, CancellationToken cancellationToken = default)
     {
         query.Normalize();
@@ -29,7 +29,7 @@ public class ProductsController : Controller
             .Select(product => new
             {
                 product.ProductId, product.ProductName, product.Brand, product.ShortDescription, product.CreatedAt,
-                product.CategoryId, CategoryName = product.Category.CategoryName, StoreId = product.StoreId, StoreName = product.Store.StoreName,
+                product.CategoryId, CategoryName = product.Category.CategoryName, StoreId = product.StoreId, StoreName = product.Store.StoreName, product.Slug,
                 BestSku = product.ProductSkus.Where(sku => sku.Status == "ACTIVE")
                     .OrderBy(sku => sku.SalePrice.HasValue && sku.SalePrice > 0 && sku.SalePrice < sku.Price && (!sku.SaleStart.HasValue || sku.SaleStart <= now) && (!sku.SaleEnd.HasValue || sku.SaleEnd >= now) ? sku.SalePrice : sku.Price)
                     .ThenBy(sku => sku.SkuId)
@@ -72,8 +72,20 @@ public class ProductsController : Controller
         return View(model);
     }
 
+    [HttpGet("/san-pham/{productSlug}")]
+    public async Task<IActionResult> CanonicalDetails(string productSlug, CancellationToken cancellationToken = default)
+    {
+        var normalized = StoreSlugService.Normalize(productSlug);
+        if (normalized != productSlug) return NotFound();
+        var productId = await GetPublicSkuQuery()
+            .Where(item => item.Product.Slug == normalized)
+            .Select(item => (long?)item.ProductId)
+            .FirstOrDefaultAsync(cancellationToken);
+        return productId.HasValue ? await Details(productId.Value, true) : NotFound();
+    }
+
     [HttpGet]
-    public async Task<IActionResult> Details(long? id)
+    public async Task<IActionResult> Details(long? id, bool canonical = false)
     {
         if (!id.HasValue)
         {
@@ -86,6 +98,11 @@ public class ProductsController : Controller
         if (sku is null)
         {
             return NotFound();
+        }
+
+        if (!canonical)
+        {
+            return RedirectToActionPermanent(nameof(CanonicalDetails), new { productSlug = sku.Product.Slug });
         }
 
         var reviews = await _context.Reviews
@@ -140,6 +157,7 @@ public class ProductsController : Controller
             ShortDescription = product.ShortDescription,
             Description = product.Description,
             CategoryName = product.Category.CategoryName,
+            CategorySlug = product.Category.Slug,
             StoreName = product.Store.StoreName,
             SkuId = sku.SkuId,
             SkuCode = sku.SkuCode,

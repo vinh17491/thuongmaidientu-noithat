@@ -40,6 +40,7 @@ public sealed class PublicStoreProductCardViewModel
 {
     public long ProductId { get; init; }
     public string ProductName { get; init; } = string.Empty;
+    public string Slug { get; init; } = string.Empty;
     public string CategoryName { get; init; } = string.Empty;
     public string? ImageUrl { get; init; }
     public string? AltText { get; init; }

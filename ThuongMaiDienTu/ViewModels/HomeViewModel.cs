@@ -11,12 +11,14 @@ public sealed class HomeViewModel
 public sealed class HomeCategoryViewModel
 {
     public long CategoryId { get; init; }
+    public string Slug { get; init; } = string.Empty;
     public string CategoryName { get; init; } = string.Empty;
 }
 
 public sealed class HomeProductViewModel
 {
     public long ProductId { get; init; }
+    public string Slug { get; init; } = string.Empty;
     public string ProductName { get; init; } = string.Empty;
     public string StoreName { get; init; } = string.Empty;
     public string? ImageUrl { get; init; }

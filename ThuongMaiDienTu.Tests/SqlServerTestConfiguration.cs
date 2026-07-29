@@ -9,7 +9,9 @@ internal static class SqlServerTestConfiguration
     // Local Development fallback only. It intentionally uses Windows integrated
     // authentication and contains no username, password, API key, or other secret.
     internal const string LocalDevelopmentFallback =
-        "Server=localhost;Database=thuongmaidientu;Trusted_Connection=True;TrustServerCertificate=True";
+        // Development-only fallback: this local SQL Server does not expose a TLS
+        // certificate, so encryption is explicitly disabled for integration tests.
+        "Server=localhost;Database=thuongmaidientu;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True";
 
     internal static SqlServerTestConnection GetConnection()
     {

@@ -46,6 +46,7 @@ namespace ThuongMaiDienTu.Controllers
                     .Select(category => new HomeCategoryViewModel
                     {
                         CategoryId = category.CategoryId,
+                        Slug = category.Slug,
                         CategoryName = category.CategoryName
                     })
                     .ToListAsync(),
@@ -68,6 +69,7 @@ namespace ThuongMaiDienTu.Controllers
                         return new HomeProductViewModel
                         {
                             ProductId = product.ProductId,
+                            Slug = product.Slug,
                             ProductName = product.ProductName,
                             StoreName = product.Store.StoreName,
                             ImageUrl = product.ProductImages

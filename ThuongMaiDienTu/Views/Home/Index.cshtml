@@ -5,6 +5,10 @@
 
 @section Meta {
     <meta name="description" content="Khám phá đồ gia dụng và nội thất từ nhiều gian hàng uy tín trên Nội Thất Hub." />
+    <link rel="canonical" href="/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nội Thất Hub" />
+    <meta property="og:url" content="/" />
 }
 
 <section class="marketplace-hero rounded-4 p-4 p-lg-5 mb-4">
@@ -28,7 +32,7 @@
 <nav class="d-flex flex-wrap gap-2 mb-5" aria-label="Danh mục nổi bật">
     @foreach (var category in Model.Categories)
     {
-        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@category.CategoryId"
+        <a asp-controller="Categories" asp-action="Details" asp-route-categorySlug="@category.Slug"
            class="btn btn-outline-dark rounded-pill">@category.CategoryName</a>
     }
 </nav>
@@ -60,7 +64,7 @@
                         }
                         <strong class="@(product.IsOnSale ? "text-danger" : null)">@product.CurrentPrice.ToString("N0") đ</strong>
                     </div>
-                    <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId"
+                    <a asp-controller="Products" asp-action="CanonicalDetails" asp-route-productSlug="@product.Slug"
                        class="stretched-link"><span class="visually-hidden">Xem @product.ProductName</span></a>
                 </article>
             </div>
