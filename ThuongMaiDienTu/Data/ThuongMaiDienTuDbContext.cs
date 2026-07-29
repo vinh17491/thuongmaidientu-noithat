@@ -163,7 +163,7 @@ public partial class ThuongMaiDienTuDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([is_primary]=(1))");
 
-            entity.HasOne(d => d.Product).WithOne(p => p.ProductImage)
+            entity.HasOne(d => d.Product).WithMany(p => p.ProductImages)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_product_images_products");
         });

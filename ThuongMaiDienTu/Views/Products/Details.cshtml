@@ -39,6 +39,23 @@
                 </div>
             }
         </div>
+        @if (Model.Images.Count > 1)
+        {
+            <div class="d-flex flex-wrap gap-2 mt-2" aria-label="Thư viện ảnh sản phẩm">
+                @foreach (var image in Model.Images)
+                {
+                    <button type="button"
+                            class="btn btn-light border p-1 product-thumbnail"
+                            data-image-url="@image.ImageUrl"
+                            data-image-alt="@(image.AltText ?? Model.ProductName)">
+                        <img src="@image.ImageUrl"
+                             alt="@(image.AltText ?? Model.ProductName)"
+                             width="72" height="72"
+                             style="object-fit:cover" />
+                    </button>
+                }
+            </div>
+        }
     </div>
 
     <div class="col-lg-6">
@@ -97,12 +114,31 @@
             </dd>
         </dl>
 
+        @if (Model.Skus.Count > 1)
+        {
+            <div class="mb-3">
+                <label for="sku-selector" class="form-label fw-semibold">Chọn biến thể</label>
+                <select id="sku-selector" class="form-select">
+                    @foreach (var variant in Model.Skus)
+                    {
+                        <option value="@variant.SkuId"
+                                data-stock="@variant.StockQuantity"
+                                data-price="@variant.CurrentPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                selected="@(variant.SkuId == Model.SkuId ? "selected" : null)">
+                            @variant.SkuCode — @variant.CurrentPrice.ToString("N0") đ
+                            (@(variant.StockQuantity > 0 ? $"còn {variant.StockQuantity}" : "hết hàng"))
+                        </option>
+                    }
+                </select>
+            </div>
+        }
+
         @if (User.IsInRole("CUSTOMER"))
         {
             @if (Model.IsInStock)
             {
                 <form asp-controller="Cart" asp-action="Add" method="post">
-                    <input type="hidden" name="SkuId" value="@Model.SkuId" />
+                    <input id="selected-sku-id" type="hidden" name="SkuId" value="@Model.SkuId" />
                     <div class="input-group">
                         <span class="input-group-text">Số lượng</span>
                         <input type="number" name="Quantity" value="1"
@@ -180,3 +216,25 @@
 </section>
 
 <a asp-action="Index" class="btn btn-outline-secondary mt-4">Quay lại danh sách</a>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll(".product-thumbnail").forEach(button => {
+            button.addEventListener("click", () => {
+                const image = document.querySelector(".product-detail-image");
+                if (image) {
+                    image.src = button.dataset.imageUrl;
+                    image.alt = button.dataset.imageAlt;
+                }
+            });
+        });
+
+        const skuSelector = document.getElementById("sku-selector");
+        const selectedSku = document.getElementById("selected-sku-id");
+        if (skuSelector && selectedSku) {
+            skuSelector.addEventListener("change", () => {
+                selectedSku.value = skuSelector.value;
+            });
+        }
+    </script>
+}

@@ -40,7 +40,7 @@ public class CartController : Controller
             .Include(item => item.CartItems)
                 .ThenInclude(item => item.Sku)
                     .ThenInclude(item => item.Product)
-                        .ThenInclude(item => item.ProductImage)
+                        .ThenInclude(item => item.ProductImages)
             .SingleOrDefaultAsync(item => item.UserId == userId);
 
         if (cart is null)

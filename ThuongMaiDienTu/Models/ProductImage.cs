@@ -32,6 +32,6 @@ public partial class ProductImage
     public int SortOrder { get; set; }
 
     [ForeignKey("ProductId")]
-    [InverseProperty("ProductImage")]
+    [InverseProperty("ProductImages")]
     public virtual Product Product { get; set; } = null!;
 }

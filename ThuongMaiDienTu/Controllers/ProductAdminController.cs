@@ -41,7 +41,7 @@ public class ProductAdminController : Controller
             .Include(product => product.Category)
             .Include(product => product.Store)
             .Include(product => product.ProductSkus)
-            .Include(product => product.ProductImage)
+            .Include(product => product.ProductImages)
             .AsNoTracking()
             .AsQueryable());
 
@@ -396,7 +396,7 @@ public class ProductAdminController : Controller
             .Include(item => item.Category)
             .Include(item => item.Store)
             .Include(item => item.ProductSkus)
-            .Include(item => item.ProductImage)
+            .Include(item => item.ProductImages)
             .AsNoTracking())
             .FirstOrDefaultAsync(item => item.ProductId == id.Value);
 

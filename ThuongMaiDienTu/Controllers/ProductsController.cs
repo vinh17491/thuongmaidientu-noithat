@@ -94,6 +94,24 @@ public class ProductsController : Controller
             DateTime.Now);
 
         var product = sku.Product;
+        var activeSkus = product.ProductSkus
+            .Where(item => item.Status == "ACTIVE")
+            .OrderBy(item => item.SkuId)
+            .Select(item =>
+            {
+                var pricing = ProductPricingHelper.Calculate(
+                    item.Price, item.SalePrice, item.SaleStart, item.SaleEnd, DateTime.Now);
+                return new ProductSkuOptionViewModel
+                {
+                    SkuId = item.SkuId,
+                    SkuCode = item.SkuCode,
+                    Price = item.Price,
+                    CurrentPrice = pricing.CurrentPrice,
+                    StockQuantity = item.StockQuantity,
+                    IsOnSale = pricing.IsOnSale
+                };
+            })
+            .ToList();
         var model = new ProductDetailsViewModel
         {
             ProductId = product.ProductId,
@@ -118,7 +136,20 @@ public class ProductsController : Controller
             AltText = product.ProductImage?.AltText,
             SeoTitle = product.SeoTitle,
             SeoDescription = product.SeoDescription,
-            Reviews = reviews
+            Reviews = reviews,
+            Skus = activeSkus,
+            Images = product.ProductImages
+                .OrderByDescending(image => image.IsPrimary)
+                .ThenBy(image => image.SortOrder)
+                .ThenBy(image => image.ImageId)
+                .Select(image => new ProductImageViewModel
+                {
+                    ImageUrl = image.ImageUrl,
+                    AltText = image.AltText,
+                    IsPrimary = image.IsPrimary,
+                    SortOrder = image.SortOrder
+                })
+                .ToList()
         };
 
         return View(model);
@@ -133,7 +164,9 @@ public class ProductsController : Controller
             .Include(sku => sku.Product)
                 .ThenInclude(product => product.Store)
             .Include(sku => sku.Product)
-                .ThenInclude(product => product.ProductImage)
+                .ThenInclude(product => product.ProductImages)
+            .Include(sku => sku.Product)
+                .ThenInclude(product => product.ProductSkus)
             .Where(sku =>
                 sku.Status == "ACTIVE" &&
                 sku.Product.Status == "ACTIVE" &&

@@ -66,7 +66,14 @@ public partial class Product
     public virtual ProductCategory Category { get; set; } = null!;
 
     [InverseProperty("Product")]
-    public virtual ProductImage? ProductImage { get; set; }
+    public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
+
+    [NotMapped]
+    public ProductImage? ProductImage => ProductImages
+        .OrderByDescending(image => image.IsPrimary)
+        .ThenBy(image => image.SortOrder)
+        .ThenBy(image => image.ImageId)
+        .FirstOrDefault();
 
     [InverseProperty("Product")]
     public virtual ICollection<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
