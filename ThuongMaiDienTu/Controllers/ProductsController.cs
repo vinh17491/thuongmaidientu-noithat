@@ -66,7 +66,7 @@ public class ProductsController : Controller
             InStockOnly = query.InStockOnly, OnSaleOnly = query.OnSaleOnly, Sort = query.Sort, Page = query.Page,
             PageSize = pageSize, TotalItems = totalItems, TotalPages = totalPages,
             Categories = await GetCategoryOptionsAsync(cancellationToken), Stores = await GetStoreOptionsAsync(cancellationToken), Brands = await GetBrandOptionsAsync(cancellationToken),
-            Items = rows.Select(row => { var price = ProductPricingHelper.Calculate(row.BestSku.Price, row.BestSku.SalePrice, row.BestSku.SaleStart, row.BestSku.SaleEnd, now); return new ProductCatalogItemViewModel { ProductId = row.ProductId, ProductName = row.ProductName, Brand = row.Brand, ShortDescription = row.ShortDescription, CategoryName = row.CategoryName, StoreName = row.StoreName, SkuId = row.BestSku.SkuId, Price = row.BestSku.Price, SalePrice = row.BestSku.SalePrice, CurrentPrice = price.CurrentPrice, IsOnSale = price.IsOnSale, DiscountPercent = price.DiscountPercent, SaleStart = row.BestSku.SaleStart, SaleEnd = row.BestSku.SaleEnd, StockQuantity = row.BestSku.StockQuantity, ImageUrl = row.Image?.ImageUrl, AltText = row.Image?.AltText, AverageRating = row.AverageRating, ReviewCount = row.ReviewCount }; }).ToList()
+            Items = rows.Select(row => { var price = ProductPricingHelper.Calculate(row.BestSku.Price, row.BestSku.SalePrice, row.BestSku.SaleStart, row.BestSku.SaleEnd, now); return new ProductCatalogItemViewModel { ProductId = row.ProductId, Slug = row.Slug, ProductName = row.ProductName, Brand = row.Brand, ShortDescription = row.ShortDescription, CategoryName = row.CategoryName, StoreName = row.StoreName, SkuId = row.BestSku.SkuId, Price = row.BestSku.Price, SalePrice = row.BestSku.SalePrice, CurrentPrice = price.CurrentPrice, IsOnSale = price.IsOnSale, DiscountPercent = price.DiscountPercent, SaleStart = row.BestSku.SaleStart, SaleEnd = row.BestSku.SaleEnd, StockQuantity = row.BestSku.StockQuantity, ImageUrl = row.Image?.ImageUrl, AltText = row.Image?.AltText, AverageRating = row.AverageRating, ReviewCount = row.ReviewCount }; }).ToList()
         };
 
         return View(model);
@@ -196,7 +196,7 @@ public class ProductsController : Controller
     private IQueryable<Models.ProductSku> GetPublicSkuQuery()
     {
         return _context.ProductSkus
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .Include(sku => sku.Product)
                 .ThenInclude(product => product.Category)
             .Include(sku => sku.Product)

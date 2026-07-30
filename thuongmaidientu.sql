@@ -448,12 +448,32 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='may-hut-bui-cam-tay-deerma')
         INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
         VALUES(@StoreId,@CleaningId,N'Máy hút bụi cầm tay Deerma','may-hut-bui-cam-tay-deerma',N'Deerma',N'Máy hút bụi nhỏ gọn cho gia đình.',N'Lực hút tốt, dễ sử dụng và bảo quản.','ACTIVE',N'Máy hút bụi cầm tay Deerma',N'Máy hút bụi cầm tay giá tốt.');
+    IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='ban-lam-viec-go-soi')
+        INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
+        VALUES(@StoreId,@ElectricalId,N'Bàn làm việc gỗ sồi','ban-lam-viec-go-soi',N'Nội Thất Hub',N'Bàn làm việc gọn gàng cho góc học tập.',N'Mặt bàn vân gỗ, khung chắc chắn và dễ lắp đặt.','ACTIVE',N'Bàn làm việc gỗ sồi',N'Bàn làm việc gỗ sồi cho gia đình.');
+    IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='ghe-an-boc-ni')
+        INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
+        VALUES(@StoreId,@ElectricalId,N'Ghế ăn bọc nỉ','ghe-an-boc-ni',N'Nội Thất Hub',N'Ghế ăn bọc nỉ êm ái, khung gỗ.',N'Kiểu dáng tối giản phù hợp bàn ăn gia đình.','ACTIVE',N'Ghế ăn bọc nỉ',N'Ghế ăn bọc nỉ hiện đại.');
+    IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='den-ban-led-chong-can')
+        INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
+        VALUES(@StoreId,@ElectricalId,N'Đèn bàn LED chống cận','den-ban-led-chong-can',N'Rạng Đông',N'Đèn bàn LED điều chỉnh độ sáng.',N'Ánh sáng dịu, tiết kiệm điện và phù hợp bàn học.','ACTIVE',N'Đèn bàn LED chống cận',N'Đèn bàn LED bảo vệ mắt.');
+    IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='ke-sach-go-ba-tang')
+        INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
+        VALUES(@StoreId,@ElectricalId,N'Kệ sách gỗ ba tầng','ke-sach-go-ba-tang',N'Nội Thất Hub',N'Kệ sách ba tầng nhỏ gọn.',N'Kệ gỗ đa năng cho phòng khách hoặc góc làm việc.','ACTIVE',N'Kệ sách gỗ ba tầng',N'Kệ sách gỗ nhỏ gọn.');
+    IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE store_id=@StoreId AND slug='chao-chong-dinh-28cm')
+        INSERT dbo.products(store_id,category_id,product_name,slug,brand,short_description,description,status,seo_title,seo_description)
+        VALUES(@StoreId,@KitchenId,N'Chảo chống dính 28 cm','chao-chong-dinh-28cm',N'Sunhouse',N'Chảo chống dính dùng cho bếp gia đình.',N'Lòng chảo bền, tay cầm cách nhiệt và dễ vệ sinh.','ACTIVE',N'Chảo chống dính 28 cm',N'Chảo chống dính Sunhouse 28 cm.');
 
     DECLARE @RiceCookerId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='noi-com-dien-sharp-18l');
     DECLARE @BlenderId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='may-xay-sinh-to-philips');
     DECLARE @CooktopId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='bep-dien-tu-sunhouse');
     DECLARE @KettleId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='am-sieu-toc-locklock-17l');
     DECLARE @VacuumId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='may-hut-bui-cam-tay-deerma');
+    DECLARE @DeskId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='ban-lam-viec-go-soi');
+    DECLARE @ChairId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='ghe-an-boc-ni');
+    DECLARE @LampId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='den-ban-led-chong-can');
+    DECLARE @ShelfId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='ke-sach-go-ba-tang');
+    DECLARE @PanId BIGINT=(SELECT product_id FROM dbo.products WHERE store_id=@StoreId AND slug='chao-chong-dinh-28cm');
 
     IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='NC-SHARP-18L')
         INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@RiceCookerId,'NC-SHARP-18L',900000,799000,'2026-01-01','2026-12-31',25,'ACTIVE');
@@ -465,17 +485,85 @@ BEGIN TRY
         INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@KettleId,'AST-LOCKLOCK-17L',520000,NULL,NULL,NULL,30,'ACTIVE');
     IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='MHB-DEERMA-CAMTAY')
         INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@VacuumId,'MHB-DEERMA-CAMTAY',850000,765000,'2026-01-01','2026-12-31',15,'ACTIVE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='BLV-GOSOI-120')
+        INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@DeskId,'BLV-GOSOI-120',2190000,1990000,'2026-01-01','2026-12-31',10,'ACTIVE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='GA-NI-XAM')
+        INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@ChairId,'GA-NI-XAM',890000,NULL,NULL,NULL,20,'ACTIVE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='DB-LED-RD01')
+        INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@LampId,'DB-LED-RD01',490000,439000,'2026-01-01','2026-12-31',24,'ACTIVE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='KS-GO-3T')
+        INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@ShelfId,'KS-GO-3T',1290000,NULL,NULL,NULL,11,'ACTIVE');
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_skus WHERE sku_code='CHAO-SH-28')
+        INSERT dbo.product_skus(product_id,sku_code,price,sale_price,sale_start,sale_end,stock_quantity,status) VALUES(@PanId,'CHAO-SH-28',620000,559000,'2026-01-01','2026-12-31',32,'ACTIVE');
 
     IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@RiceCookerId AND is_primary=1)
-        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@RiceCookerId,'/images/products/noi-com-dien-sharp-18l.jpg',N'Nồi cơm điện Sharp 1.8L',1,1);
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@RiceCookerId,'/images/products/noi-com-dien-sharp-18l.svg',N'Nồi cơm điện Sharp 1.8L',1,1);
     IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@BlenderId AND is_primary=1)
-        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@BlenderId,'/images/products/may-xay-sinh-to-philips.jpg',N'Máy xay sinh tố Philips',1,1);
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@BlenderId,'/images/products/may-xay-sinh-to-philips.svg',N'Máy xay sinh tố Philips',1,1);
     IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@CooktopId AND is_primary=1)
-        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@CooktopId,'/images/products/bep-dien-tu-sunhouse.jpg',N'Bếp điện từ Sunhouse',1,1);
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@CooktopId,'/images/products/bep-dien-tu-sunhouse.svg',N'Bếp điện từ Sunhouse',1,1);
     IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@KettleId AND is_primary=1)
-        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@KettleId,'/images/products/am-sieu-toc-locklock-17l.jpg',N'Ấm siêu tốc Lock&Lock 1.7L',1,1);
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@KettleId,'/images/products/am-sieu-toc-locklock-17l.svg',N'Ấm siêu tốc Lock&Lock 1.7L',1,1);
     IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@VacuumId AND is_primary=1)
-        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@VacuumId,'/images/products/may-hut-bui-cam-tay-deerma.jpg',N'Máy hút bụi cầm tay Deerma',1,1);
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@VacuumId,'/images/products/may-hut-bui-cam-tay-deerma.svg',N'Máy hút bụi cầm tay Deerma',1,1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@DeskId AND is_primary=1)
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@DeskId,'/images/products/ban-lam-viec-go-soi.svg',N'Bàn làm việc gỗ sồi',1,1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@ChairId AND is_primary=1)
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@ChairId,'/images/products/ghe-an-boc-ni.svg',N'Ghế ăn bọc nỉ',1,1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@LampId AND is_primary=1)
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@LampId,'/images/products/den-ban-led-chong-can.svg',N'Đèn bàn LED chống cận',1,1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@ShelfId AND is_primary=1)
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@ShelfId,'/images/products/ke-sach-go-ba-tang.svg',N'Kệ sách gỗ ba tầng',1,1);
+    IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id=@PanId AND is_primary=1)
+        INSERT dbo.product_images(product_id,image_url,alt_text,is_primary,sort_order) VALUES(@PanId,'/images/products/chao-chong-dinh-28cm.svg',N'Chảo chống dính 28 cm',1,1);
+
+    /* Restore the household demo and retire the legacy badminton catalog without deleting history. */
+    UPDATE dbo.stores SET status='ACTIVE' WHERE slug='gia-dung-viet';
+    UPDATE dbo.product_categories SET status='ACTIVE' WHERE slug IN('nha-bep','ve-sinh-nha-cua','dien-gia-dung');
+    UPDATE dbo.products SET status='ACTIVE'
+    WHERE store_id=@StoreId AND slug IN('noi-com-dien-sharp-18l','may-xay-sinh-to-philips','bep-dien-tu-sunhouse',
+        'am-sieu-toc-locklock-17l','may-hut-bui-cam-tay-deerma','ban-lam-viec-go-soi','ghe-an-boc-ni',
+        'den-ban-led-chong-can','ke-sach-go-ba-tang','chao-chong-dinh-28cm');
+    /* Natural-key corrections are deliberate and make a UTF-8 seed rerun repair prior mojibake. */
+    UPDATE p SET product_name=v.product_name,brand=v.brand,short_description=v.short_description,
+        description=v.description,seo_title=v.seo_title,seo_description=v.seo_description
+    FROM dbo.products p
+    JOIN (VALUES
+        ('ban-lam-viec-go-soi',N'Bàn làm việc gỗ sồi',N'Nội Thất Hub',N'Bàn làm việc gọn gàng cho góc học tập.',N'Mặt bàn vân gỗ, khung chắc chắn và dễ lắp đặt.',N'Bàn làm việc gỗ sồi',N'Bàn làm việc gỗ sồi cho gia đình.'),
+        ('ghe-an-boc-ni',N'Ghế ăn bọc nỉ',N'Nội Thất Hub',N'Ghế ăn bọc nỉ êm ái, khung gỗ.',N'Kiểu dáng tối giản phù hợp bàn ăn gia đình.',N'Ghế ăn bọc nỉ',N'Ghế ăn bọc nỉ hiện đại.'),
+        ('den-ban-led-chong-can',N'Đèn bàn LED chống cận',N'Rạng Đông',N'Đèn bàn LED điều chỉnh độ sáng.',N'Ánh sáng dịu, tiết kiệm điện và phù hợp bàn học.',N'Đèn bàn LED chống cận',N'Đèn bàn LED bảo vệ mắt.'),
+        ('ke-sach-go-ba-tang',N'Kệ sách gỗ ba tầng',N'Nội Thất Hub',N'Kệ sách ba tầng nhỏ gọn.',N'Kệ gỗ đa năng cho phòng khách hoặc góc làm việc.',N'Kệ sách gỗ ba tầng',N'Kệ sách gỗ nhỏ gọn.'),
+        ('chao-chong-dinh-28cm',N'Chảo chống dính 28 cm',N'Sunhouse',N'Chảo chống dính dùng cho bếp gia đình.',N'Lòng chảo bền, tay cầm cách nhiệt và dễ vệ sinh.',N'Chảo chống dính 28 cm',N'Chảo chống dính Sunhouse 28 cm.')
+    ) v(slug,product_name,brand,short_description,description,seo_title,seo_description)
+        ON v.slug=p.slug AND p.store_id=@StoreId;
+    UPDATE i SET alt_text=p.product_name
+    FROM dbo.product_images i JOIN dbo.products p ON p.product_id=i.product_id
+    WHERE p.store_id=@StoreId AND i.is_primary=1;
+    UPDATE dbo.product_images SET image_url=REPLACE(image_url,'.jpg','.svg')
+    WHERE product_id IN(@RiceCookerId,@BlenderId,@CooktopId,@KettleId,@VacuumId) AND is_primary=1;
+    UPDATE dbo.product_categories SET status='INACTIVE'
+    WHERE slug IN('vot-cau-long','giay-cau-long','qua-cau-long','day-cuoc-cau-long','quan-can-grip',
+        'tui-bao-vot','quan-ao-cau-long','phu-kien-cau-long');
+    UPDATE p SET status='HIDDEN'
+    FROM dbo.products p
+    JOIN dbo.stores s ON s.store_id=p.store_id
+    JOIN dbo.product_categories c ON c.category_id=p.category_id
+    WHERE s.slug IN('smash-sport','shuttle-corner') OR c.slug IN('vot-cau-long','giay-cau-long','qua-cau-long',
+        'day-cuoc-cau-long','quan-can-grip','tui-bao-vot','quan-ao-cau-long','phu-kien-cau-long');
+    UPDATE dbo.stores SET status='SUSPENDED' WHERE slug IN('smash-sport','shuttle-corner');
+
+    IF EXISTS(SELECT 1 FROM dbo.products p JOIN dbo.stores s ON s.store_id=p.store_id JOIN dbo.product_categories c ON c.category_id=p.category_id
+        WHERE p.status='ACTIVE' AND s.status='ACTIVE' AND c.status='ACTIVE'
+          AND (s.slug IN('smash-sport','shuttle-corner') OR c.slug LIKE '%cau-long%'))
+        THROW 50401,N'Badminton demo data is still public.',1;
+    IF (SELECT COUNT(*) FROM dbo.products p JOIN dbo.stores s ON s.store_id=p.store_id JOIN dbo.product_categories c ON c.category_id=p.category_id
+        WHERE p.status='ACTIVE' AND s.status='ACTIVE' AND c.status='ACTIVE') NOT BETWEEN 8 AND 12
+        THROW 50402,N'Public household demo must contain 8 to 12 active products.',1;
+    IF EXISTS(SELECT 1 FROM dbo.products p JOIN dbo.stores s ON s.store_id=p.store_id JOIN dbo.product_categories c ON c.category_id=p.category_id
+        WHERE p.status='ACTIVE' AND s.status='ACTIVE' AND c.status='ACTIVE'
+          AND NOT EXISTS(SELECT 1 FROM dbo.product_images i WHERE i.product_id=p.product_id AND i.is_primary=1
+              AND NULLIF(i.image_url,'') IS NOT NULL AND NULLIF(i.alt_text,N'') IS NOT NULL))
+        THROW 50403,N'Public demo product is missing a primary image or alt text.',1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.carts WHERE user_id=@CustomerId)
         INSERT dbo.carts(user_id) VALUES(@CustomerId);

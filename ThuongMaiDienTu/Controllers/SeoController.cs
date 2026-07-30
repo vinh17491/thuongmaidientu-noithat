@@ -16,7 +16,9 @@ public sealed class SeoController(ThuongMaiDienTuDbContext context, IConfigurati
         urls.AddRange((await context.CategoriesForSitemap(cancellationToken)).Select(urlService.Build));
         urls.AddRange((await context.Stores.AsNoTracking().Where(item => item.Status == "ACTIVE").Select(item => item.Slug).ToListAsync(cancellationToken)).Select(slug => urlService.Build("/cua-hang/" + Uri.EscapeDataString(slug))));
         urls.AddRange((await context.Products.AsNoTracking().Where(item => item.Status == "ACTIVE" && item.Store.Status == "ACTIVE" && item.Category.Status == "ACTIVE" && item.ProductSkus.Any(sku => sku.Status == "ACTIVE")).Select(item => item.Slug).ToListAsync(cancellationToken)).Select(slug => urlService.Build("/san-pham/" + Uri.EscapeDataString(slug))));
-        var document = new XDocument(new XElement("urlset", new XAttribute("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9"), urls.Distinct().Select(url => new XElement("url", new XElement("loc", url)))));
+        XNamespace sitemap = "http://www.sitemaps.org/schemas/sitemap/0.9";
+        var document = new XDocument(new XElement(sitemap + "urlset",
+            urls.Distinct().Select(url => new XElement(sitemap + "url", new XElement(sitemap + "loc", url)))));
         return Content(document.ToString(SaveOptions.DisableFormatting), "application/xml; charset=utf-8");
     }
 

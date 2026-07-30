@@ -1,7 +1,7 @@
 # Demo flow
 
 1. Giới thiệu Nội Thất Hub là marketplace đa Store.
-2. Home, Catalog và search/filter/sort/pagination.
+2. Home và Catalog hiển thị 10 sản phẩm nội thất/gia dụng với ảnh SVG; tìm “bàn làm việc”.
 3. Category, Store, Product canonical routes và SEO metadata.
 4. Customer chọn SKU, Cart và checkout nhiều Store.
 5. Customer Orders và StoreOrder tách theo Store.
@@ -12,4 +12,6 @@
 
 Chuẩn bị dữ liệu hợp lệ; không ghi password production.
 
-Chatbox: thử greeting, tìm sản phẩm và hướng dẫn checkout; đây là local assistant, không phải external AI.
+Chatbox: thử “xin chào”, “tìm bàn làm việc” và “tra đơn DH000001”. Anonymous nhận yêu cầu đăng nhập; customer demo chỉ nhận đơn thuộc claim của mình. Đây là local assistant, không phải external AI.
+
+Kiểm tra thêm `/sitemap.xml`: không có store/category/product cầu lông legacy.

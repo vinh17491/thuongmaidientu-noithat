@@ -90,7 +90,7 @@ public sealed class SqlServerMarketplaceIntegrationTests
     public async Task PublicStorePage_ReturnsNotFoundForNonActiveStore()
     {
         await using var context = CreateContext();
-        var store = await context.Stores.AsNoTracking().SingleAsync(item => item.Status != "ACTIVE");
+        var store = await context.Stores.AsNoTracking().FirstAsync(item => item.Status != "ACTIVE");
         var result = await new StoresController(context).Details(store.Slug);
 
         Assert.IsType<NotFoundResult>(result);

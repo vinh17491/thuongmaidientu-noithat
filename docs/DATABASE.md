@@ -11,3 +11,7 @@ Database duy nhất: `thuongmaidientu`. Script duy nhất: `thuongmaidientu.sql`
 - Audit: `audit_logs`.
 
 Foreign keys, unique/index/check constraints, money invariants và stock/promotion rules nằm trong SQL hiện hữu. Không fresh-create bằng database tên khác trong phase này.
+
+Seed cuối duy trì 10 sản phẩm ACTIVE thuộc `gia-dung-viet`, mỗi sản phẩm có SKU ACTIVE và primary SVG/alt text. Script dùng natural key, sửa mojibake demo theo slug và có verification cho số lượng public, ảnh bắt buộc và dữ liệu cầu lông không còn public. Hai store cầu lông được `SUSPENDED`, 20 product `HIDDEN`, 8 category `INACTIVE`; Order/OrderItem/lịch sử không bị xóa.
+
+Trước cập nhật ngày 2026-07-31 đã tạo và VERIFY backup COPY_ONLY tại `D:\ThuongMaiDienTu\DatabaseBackups\thuongmaidientu_pre_final_fix_20260731_013658.bak`.
