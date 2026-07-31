@@ -117,11 +117,26 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-8">
-                <label asp-for="ImageUrl" class="form-label"></label>
-                <input asp-for="ImageUrl" class="form-control"
-                       placeholder="https://... hoặc /images/products/..." />
+                <label class="form-label">Nguồn ảnh chính</label>
+                <div class="btn-group w-100 mb-2" role="group" aria-label="Chọn nguồn ảnh">
+                    <input type="radio" class="btn-check" name="ImageSource" id="imageSourceUrl" value="url" @(Model.ImageSource != "file" ? "checked" : null) />
+                    <label class="btn btn-outline-primary" for="imageSourceUrl">Dùng URL ảnh</label>
+                    <input type="radio" class="btn-check" name="ImageSource" id="imageSourceFile" value="file" @(Model.ImageSource == "file" ? "checked" : null) />
+                    <label class="btn btn-outline-primary" for="imageSourceFile">Chọn ảnh từ máy</label>
+                </div>
+                <div id="imageUrlPanel">
+                    <label asp-for="ImageUrl" class="form-label"></label>
+                    <input asp-for="ImageUrl" class="form-control"
+                           placeholder="https://... hoặc /images/products/..." />
+                    <div class="form-text">Dán URL ảnh công khai hoặc đường dẫn ảnh nội bộ bắt đầu bằng `/`.</div>
+                </div>
+                <div id="imageFilePanel" class="d-none">
+                    <label asp-for="ImageFile" class="form-label"></label>
+                    <input asp-for="ImageFile" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif,.svg,image/*" />
+                    <div class="form-text">JPG, PNG, WEBP, GIF hoặc SVG; tối đa 5 MB. File sẽ được lưu trong thư mục ảnh của ứng dụng.</div>
+                </div>
                 <span asp-validation-for="ImageUrl" class="text-danger"></span>
-                <div class="form-text">Để trống nếu chưa có ảnh; hệ thống sẽ hiển thị placeholder.</div>
+                <span asp-validation-for="ImageFile" class="text-danger"></span>
             </div>
             <div class="col-md-4">
                 <label asp-for="AltText" class="form-label"></label>
@@ -141,3 +156,20 @@
         </div>
     </div>
 </div>
+
+<script>
+(() => {
+    const urlChoice = document.getElementById('imageSourceUrl');
+    const fileChoice = document.getElementById('imageSourceFile');
+    const urlPanel = document.getElementById('imageUrlPanel');
+    const filePanel = document.getElementById('imageFilePanel');
+    const sync = () => {
+        const useFile = fileChoice.checked;
+        urlPanel.classList.toggle('d-none', useFile);
+        filePanel.classList.toggle('d-none', !useFile);
+    };
+    urlChoice.addEventListener('change', sync);
+    fileChoice.addEventListener('change', sync);
+    sync();
+})();
+</script>

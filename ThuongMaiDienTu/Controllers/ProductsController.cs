@@ -190,7 +190,7 @@ public class ProductsController : Controller
                 .ToList()
         };
 
-        return View(model);
+        return View("Details", model);
     }
 
     private IQueryable<Models.ProductSku> GetPublicSkuQuery()

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -17,15 +19,18 @@ public class ProductAdminController : Controller
     private readonly ThuongMaiDienTuDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IStoreOwnershipService _ownership;
+    private readonly IWebHostEnvironment _environment;
 
     public ProductAdminController(
         ThuongMaiDienTuDbContext context,
         ICurrentUserService currentUser,
-        IStoreOwnershipService ownership)
+        IStoreOwnershipService ownership,
+        IWebHostEnvironment environment)
     {
         _context = context;
         _currentUser = currentUser;
         _ownership = ownership;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -123,6 +128,7 @@ public class ProductAdminController : Controller
     public async Task<IActionResult> Create(ProductAdminFormViewModel model)
     {
         Normalize(model);
+        await PrepareImageAsync(model);
 
         var store = _currentUser.IsAdmin
             ? await _context.Stores.AsNoTracking()
@@ -278,6 +284,7 @@ public class ProductAdminController : Controller
         }
 
         Normalize(model);
+        await PrepareImageAsync(model);
 
         var product = await _ownership.ScopeProducts(_context.Products)
             .FirstOrDefaultAsync(item => item.ProductId == id);
@@ -622,6 +629,35 @@ public class ProductAdminController : Controller
         model.SkuStatus = model.SkuStatus?.Trim().ToUpperInvariant() ?? string.Empty;
         model.ImageUrl = TrimToNull(model.ImageUrl);
         model.AltText = TrimToNull(model.AltText);
+    }
+
+    private async Task PrepareImageAsync(ProductAdminFormViewModel model)
+    {
+        if (model.ImageFile is null || model.ImageFile.Length == 0) return;
+
+        const long maxBytes = 5 * 1024 * 1024;
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg" };
+        var extension = Path.GetExtension(model.ImageFile.FileName).ToLowerInvariant();
+        if (model.ImageFile.Length > maxBytes)
+        {
+            ModelState.AddModelError(nameof(model.ImageFile), "Ảnh không được vượt quá 5 MB.");
+            return;
+        }
+
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(model.ImageFile), "Chỉ nhận ảnh JPG, PNG, WEBP, GIF hoặc SVG.");
+            return;
+        }
+
+        var uploadDirectory = Path.Combine(_environment.WebRootPath, "images", "uploads", "products");
+        Directory.CreateDirectory(uploadDirectory);
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var physicalPath = Path.Combine(uploadDirectory, fileName);
+        await using var stream = System.IO.File.Create(physicalPath);
+        await model.ImageFile.CopyToAsync(stream);
+        model.ImageUrl = $"/images/uploads/products/{fileName}";
+        model.ImageSource = "file";
     }
 
     private static string? TrimToNull(string? value)

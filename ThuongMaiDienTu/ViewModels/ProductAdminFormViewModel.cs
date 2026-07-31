@@ -87,6 +87,11 @@ public class ProductAdminFormViewModel : IValidatableObject
     [Display(Name = "URL ảnh chính")]
     public string? ImageUrl { get; set; }
 
+    [Display(Name = "File ảnh chính")]
+    public IFormFile? ImageFile { get; set; }
+
+    public string ImageSource { get; set; } = "url";
+
     [StringLength(180, ErrorMessage = "Mô tả ảnh không được vượt quá 180 ký tự.")]
     [Display(Name = "Mô tả ảnh")]
     public string? AltText { get; set; }

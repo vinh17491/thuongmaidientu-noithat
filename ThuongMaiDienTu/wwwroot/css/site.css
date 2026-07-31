@@ -28,6 +28,48 @@ body {
     linear-gradient(135deg, #16302b, #285f53);
 }
 
+.home-shell {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(120px, 160px);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.home-main-content {
+  min-width: 0;
+}
+
+.home-decor {
+  display: grid;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.home-decor img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px solid rgba(35, 55, 48, .14);
+  border-radius: 1rem;
+  box-shadow: 0 .35rem 1rem rgba(24, 43, 37, .12);
+}
+
+.home-decor-left img:first-child {
+  object-position: center;
+}
+
+@media (max-width: 1199.98px) {
+  .home-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-decor {
+    display: none;
+  }
+}
+
 .hero-mark {
   display: inline-grid;
   width: 12rem;
