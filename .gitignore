@@ -20,3 +20,11 @@ TestResults/
 # OS
 Thumbs.db
 .DS_Store
+
+# Runtime logs and local database backups
+*.log
+*.bak
+DatabaseBackups/
+
+# Temporary archives
+*.zip

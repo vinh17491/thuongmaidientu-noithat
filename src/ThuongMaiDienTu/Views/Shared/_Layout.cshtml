@@ -1,0 +1,253 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    @{ var path = Context.Request.Path.Value ?? string.Empty; var privatePath = path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Seller", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Carrier", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Cart", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Checkout", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Orders", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ProductAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/OrderAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ReviewAdmin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Dashboard", StringComparison.OrdinalIgnoreCase); }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Nội Thất Hub</title>
+    <meta name="description" content="@(ViewData["Description"] ?? "Marketplace nội thất và đồ gia dụng đa gian hàng.")" />
+    @if (ViewData["CanonicalPath"] is string canonicalPath) { <link rel="canonical" href="@canonicalPath" /> }
+    @if (ViewData["Robots"] is string robots) { <meta name="robots" content="@robots" /> }
+    @if (ViewData["Robots"] is not string && privatePath) { <meta name="robots" content="noindex,nofollow" /> }
+    @await RenderSectionAsync("Meta", required: false)
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ThuongMaiDienTu.styles.css" asp-append-version="true" />
+</head>
+<body class="app-body">
+    <header class="site-header">
+        <div class="announcement-bar">
+            <div class="container-xxl d-flex justify-content-between align-items-center gap-3">
+                <span>🚚 Giao hàng toàn quốc · Đổi trả minh bạch</span>
+                <span class="d-none d-md-inline">Giá tốt mỗi ngày · Mua sắm an tâm</span>
+            </div>
+        </div>
+        <nav class="navbar navbar-expand-lg navbar-light site-navbar">
+            <div class="container-xxl">
+                <a class="navbar-brand brand-lockup" asp-area="" asp-controller="Home" asp-action="Index" aria-label="Nội Thất Hub - Trang chủ">
+                    <span class="brand-mark" aria-hidden="true">NH</span>
+                    <span><strong>Nội Thất</strong><small>SIÊU THỊ NHÀ ĐẸP</small></span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse justify-content-between gap-lg-3">
+                    <form asp-controller="Products" asp-action="Index" method="get" class="header-search order-lg-1">
+                        <input name="searchTerm" class="form-control" placeholder="Tìm sản phẩm, thương hiệu..." aria-label="Tìm kiếm sản phẩm" />
+                        <button type="submit" aria-label="Tìm kiếm">🔍</button>
+                    </form>
+                    <ul class="navbar-nav primary-nav order-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Products"
+                               asp-action="Index">
+                                Sản phẩm
+                            </a>
+                        </li>
+                        @if (User.IsInRole("ADMIN") || User.IsInRole("SELLER"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle"
+                                   href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Quản trị
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="ProductAdmin"
+                                           asp-action="Index">Quản lý sản phẩm</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="ProductCategories"
+                                           asp-action="Index">Quản lý danh mục</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="OrderAdmin"
+                                           asp-action="Index">Quản lý đơn hàng</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="ReviewAdmin"
+                                           asp-action="Index">Quản lý đánh giá</a>
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="Dashboard"
+                                           asp-action="Index">Dashboard</a>
+                                    </li>
+                                    @if (User.IsInRole("SELLER"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SellerStores" asp-action="Index">Gian hàng của tôi</a></li>
+                                    }
+                                    @if (User.IsInRole("ADMIN"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="AdminStores" asp-action="Index">Duyệt gian hàng</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav account-nav align-items-lg-center order-lg-2">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (User.IsInRole("CARRIER") || User.IsInRole("ADMIN"))
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-controller="CarrierPortal" asp-action="Index">Cổng vận chuyển</a></li>
+                            }
+                            @if (User.IsInRole("CUSTOMER"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link nav-icon-link"
+                                        asp-controller="Cart" asp-action="Index">🛒 Giỏ hàng</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link"
+                                       asp-controller="Orders" asp-action="Index">Đơn hàng của tôi</a>
+                                </li>
+                            }
+                            <li class="nav-item">
+                                <span class="user-chip"><span class="user-avatar" aria-hidden="true">@((User.Identity.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><span>@User.Identity.Name</span></span>
+                            </li>
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Đăng xuất</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-primary rounded-pill px-4 ms-lg-2" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container-xxl app-shell">
+        <main role="main" class="app-main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        <div class="container-xxl">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-lockup footer-brand"><span class="brand-mark" aria-hidden="true">NH</span><span><strong>Nội Thất</strong><small>SIÊU THỊ NHÀ ĐẸP</small></span></div>
+                    <p>Siêu thị nội thất và gia dụng đa gian hàng — đủ món cho mọi căn phòng.</p>
+                </div>
+                <div><strong>Khám phá</strong><a asp-controller="Home" asp-action="Index">Trang chủ</a><a asp-controller="Products" asp-action="Index">Sản phẩm</a></div>
+                <div><strong>Hỗ trợ</strong><a asp-controller="Home" asp-action="Privacy">Chính sách riêng tư</a><span>Mua sắm an toàn</span></div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 Nội Thất Hub · Siêu thị nhà đẹp trực tuyến</div>
+        </div>
+    </footer>
+    <nav class="quick-dock" aria-label="Truy cập nhanh">
+        <a asp-controller="Home" asp-action="Index" class="quick-dock-brand" data-label="Nội Thất Hub" aria-label="Nội Thất Hub">NH</a>
+        <div class="quick-dock-group">
+            <span class="quick-dock-group-label">Mua sắm</span>
+        <a asp-controller="Home" asp-action="Index" class="quick-dock-item" data-label="Trang chủ" aria-label="Trang chủ">
+            <span aria-hidden="true">⌂</span>
+        </a>
+        <a asp-controller="Products" asp-action="Index" class="quick-dock-item" data-label="Sản phẩm" aria-label="Sản phẩm">
+            <span aria-hidden="true">▦</span>
+        </a>
+        @if (User.IsInRole("CUSTOMER"))
+        {
+            <a asp-controller="Cart" asp-action="Index" class="quick-dock-item" data-label="Giỏ hàng" aria-label="Giỏ hàng">
+                <span aria-hidden="true">🛒</span>
+            </a>
+            <a asp-controller="Orders" asp-action="Index" class="quick-dock-item" data-label="Đơn hàng" aria-label="Đơn hàng của tôi">
+                <span aria-hidden="true">▤</span>
+            </a>
+        }
+        </div>
+        @if (User.IsInRole("ADMIN"))
+        {
+            <div class="quick-dock-group quick-dock-admin">
+                <span class="quick-dock-group-label">Quản trị</span>
+                <a asp-controller="Dashboard" asp-action="Index" class="quick-dock-item" data-label="Dashboard" aria-label="Dashboard"><span aria-hidden="true">▥</span></a>
+                <a asp-controller="ProductAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý sản phẩm" aria-label="Quản lý sản phẩm"><span aria-hidden="true">▣</span></a>
+                <a asp-controller="ProductCategories" asp-action="Index" class="quick-dock-item" data-label="Quản lý danh mục" aria-label="Quản lý danh mục"><span aria-hidden="true">☷</span></a>
+                <a asp-controller="OrderAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý đơn hàng" aria-label="Quản lý đơn hàng"><span aria-hidden="true">▤</span></a>
+                <a asp-controller="ReviewAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý đánh giá" aria-label="Quản lý đánh giá"><span aria-hidden="true">★</span></a>
+                <a asp-controller="AdminStores" asp-action="Index" class="quick-dock-item" data-label="Duyệt gian hàng" aria-label="Duyệt gian hàng"><span aria-hidden="true">▰</span></a>
+            </div>
+        }
+        else if (User.IsInRole("SELLER"))
+        {
+            <div class="quick-dock-group quick-dock-admin">
+                <span class="quick-dock-group-label">Quản trị</span>
+                <a asp-controller="Dashboard" asp-action="Index" class="quick-dock-item" data-label="Dashboard" aria-label="Dashboard"><span aria-hidden="true">▥</span></a>
+                <a asp-controller="ProductAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý sản phẩm" aria-label="Quản lý sản phẩm"><span aria-hidden="true">▣</span></a>
+                <a asp-controller="ProductCategories" asp-action="Index" class="quick-dock-item" data-label="Quản lý danh mục" aria-label="Quản lý danh mục"><span aria-hidden="true">☷</span></a>
+                <a asp-controller="OrderAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý đơn hàng" aria-label="Quản lý đơn hàng"><span aria-hidden="true">▤</span></a>
+                <a asp-controller="ReviewAdmin" asp-action="Index" class="quick-dock-item" data-label="Quản lý đánh giá" aria-label="Quản lý đánh giá"><span aria-hidden="true">★</span></a>
+            </div>
+        }
+        <div class="quick-dock-bottom"><button id="chatToggle" type="button" class="quick-dock-item quick-dock-chat" data-label="Trợ lý" aria-label="Mở trợ lý mua sắm"><span aria-hidden="true">✦</span></button></div>
+    </nav>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <section id="chatbox" class="chatbox shadow" hidden aria-label="Trợ lý mua sắm Nội Thất Hub">
+        <header class="chatbox-header">Trợ lý mua sắm Nội Thất Hub <button id="chatClose" type="button" aria-label="Đóng">×</button></header>
+        <div id="chatMessages" class="chat-messages"><p class="assistant">Chào bạn! Nhấn “Hi” để bắt đầu cuộc trò chuyện nhé.</p></div>
+        <div id="chatChoices" class="chat-choices"><button type="button" data-message="Hi">👋 Hi</button></div>
+        <form id="chatForm" class="chat-input-form">@Html.AntiForgeryToken()<input id="chatInput" name="Message" type="text" maxlength="500" autocomplete="off" placeholder="Nhập câu hỏi của bạn..." aria-label="Tin nhắn" /><button type="submit" aria-label="Gửi tin nhắn">Gửi</button></form>
+    </section>
+    <script>
+    (() => {
+        const box=document.getElementById('chatbox'), toggle=document.getElementById('chatToggle'),
+            close=document.getElementById('chatClose'), messages=document.getElementById('chatMessages'),
+            choices=document.getElementById('chatChoices'), form=document.getElementById('chatForm'), input=document.getElementById('chatInput');
+        if(!box||!form||!messages||!choices)return;
+        let submitting=false;
+        const add=(text,who)=>{const p=document.createElement('p');p.className=who;p.textContent=text;messages.appendChild(p);messages.scrollTop=messages.scrollHeight;};
+        const renderProducts=products=>{
+            products.forEach(product=>{
+                const card=document.createElement('a'); card.className='chat-product'; card.href=product.url;
+                const name=document.createElement('strong'); name.textContent=product.productName;
+                const store=document.createElement('small'); store.textContent=`${product.storeName} · ${product.categoryName}`;
+                const price=document.createElement('b'); price.textContent=new Intl.NumberFormat('vi-VN').format(product.currentPrice)+' đ';
+                card.append(name,store,price); messages.appendChild(card);
+            });
+        };
+        const renderChoices=actions=>{
+            choices.replaceChildren();
+            actions.forEach(action=>{const button=document.createElement('button');button.type='button';button.dataset.message=action;button.textContent=action;choices.appendChild(button);});
+        };
+        const send=async message=>{
+            if(!message||submitting)return;
+            submitting=true; choices.querySelectorAll('button').forEach(button=>button.disabled=true); input.disabled=true; add(message,'user');
+            try {
+                const payload=new FormData(form); payload.set('Message',message);
+                const response=await fetch('/tro-ly/hoi',{method:'POST',body:payload});
+                let data={}; try { data=await response.json(); } catch {}
+                if(!response.ok) throw new Error(response.status===429?'Bạn thao tác quá nhanh, vui lòng thử lại sau.':data.message);
+                add(data.message??'Trợ lý tạm thời không khả dụng.','assistant');
+                renderProducts(data.products??[]); renderChoices(data.suggestedActions??[]);
+            } catch(error) { add(error.message||'Trợ lý tạm thời không khả dụng.','assistant'); renderChoices(['Bắt đầu lại']); }
+            finally { submitting=false; input.disabled=false; input.focus(); messages.scrollTop=messages.scrollHeight; }
+        };
+        toggle.addEventListener('click',()=>{box.hidden=false;});
+        close.addEventListener('click',()=>box.hidden=true);
+        form.addEventListener('submit',event=>{event.preventDefault();const message=input.value.trim();if(message){input.value='';send(message);}});
+        choices.addEventListener('click',event=>{const button=event.target.closest('button[data-message]');if(button)send(button.dataset.message);});
+    })();
+    </script>
+</body>
+</html>

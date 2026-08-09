@@ -1,0 +1,162 @@
+@model DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="mb-4">
+    <h1 class="h2 mb-1">Dashboard thương mại điện tử</h1>
+    <p class="text-muted mb-0">Số liệu được tổng hợp trực tiếp từ SQL Server.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted">Tổng sản phẩm</div>
+                <div class="display-6 fw-semibold">@Model.TotalProducts</div>
+                <div class="small text-muted">Không tính đơn đã hủy</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted">Khách hàng</div>
+                <div class="display-6 fw-semibold">@Model.TotalCustomers</div>
+                <div class="small text-muted">Role CUSTOMER</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted">Tổng đơn hàng</div>
+                <div class="display-6 fw-semibold">@Model.TotalOrders</div>
+                <div class="small text-muted">Tất cả trạng thái</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100 border-success">
+            <div class="card-body">
+                <div class="text-muted">Doanh thu đã giao</div>
+                <div class="h3 fw-semibold text-success">@Model.TotalRevenue.ToString("N0") đ</div>
+                <div class="small text-muted">Chỉ đơn DELIVERED</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <section class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Số đơn theo trạng thái</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <tbody>
+                        @foreach (var item in Model.OrdersByStatus)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="badge @OrderWorkflowHelper.StatusBadgeClass(item.Status)">
+                                        @OrderWorkflowHelper.OrderStatusLabel(item.Status)
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold">@item.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-7">
+        <section class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Top 5 sản phẩm bán chạy</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th class="text-end">Đã bán</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TopSellingProducts.Count == 0)
+                        {
+                            <tr><td colspan="3" class="text-center text-muted">Chưa có đơn đã giao.</td></tr>
+                        }
+                        @foreach (var item in Model.TopSellingProducts)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@item.ProductName</div>
+                                    <div class="small text-muted">SKU ID: @item.SkuId</div>
+                                </td>
+                                <td class="text-end">@item.TotalQuantitySold</td>
+                                <td class="text-end">@item.TotalRevenue.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <section class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Doanh thu theo tháng</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead><tr><th>Tháng</th><th class="text-end">Đơn đã giao</th><th class="text-end">Doanh thu</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in Model.RevenueByMonth)
+                        {
+                            <tr>
+                                <td>@item.Month.ToString("00")/@item.Year</td>
+                                <td class="text-end">@item.TotalOrders</td>
+                                <td class="text-end">@item.TotalRevenue.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-6">
+        <section class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Sản phẩm sắp hết hàng (≤ 5)</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead><tr><th>Sản phẩm</th><th class="text-end">Tồn kho</th></tr></thead>
+                    <tbody>
+                        @if (Model.LowStockProducts.Count == 0)
+                        {
+                            <tr><td colspan="2" class="text-center text-muted">Không có sản phẩm sắp hết.</td></tr>
+                        }
+                        @foreach (var item in Model.LowStockProducts)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="ProductAdmin" asp-action="Details"
+                                       asp-route-id="@item.ProductId">@item.ProductName</a>
+                                    <div class="small text-muted">@item.SkuCode</div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge @(item.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                        @item.StockQuantity
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>

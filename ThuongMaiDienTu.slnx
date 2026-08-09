@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="ThuongMaiDienTu/ThuongMaiDienTu.csproj" />
-  <Project Path="ThuongMaiDienTu.Tests/ThuongMaiDienTu.Tests.csproj" />
+  <Project Path="src/ThuongMaiDienTu/ThuongMaiDienTu.csproj" />
+  <Project Path="tests/ThuongMaiDienTu.Tests/ThuongMaiDienTu.Tests.csproj" />
 </Solution>

@@ -1,46 +1,88 @@
-# Nội Thất Hub
+# Nội Thất Hub — ThuongMaiDienTu
 
-Nội Thất Hub là sàn thương mại điện tử nội thất đa gian hàng: Seller sở hữu Store riêng, Customer mua từ nhiều Store, Admin quản trị toàn sàn và Carrier quản lý vận chuyển.
+Dự án ASP.NET Core MVC .NET 8, EF Core và SQL Server.
 
-## Công nghệ
-
-ASP.NET Core MVC .NET 8, EF Core 8.0.29, SQL Server, Razor, Bootstrap, BCrypt.Net-Next và xUnit.
-
-## Chạy
+## Cấu trúc
 
 ```text
-dotnet restore
-dotnet build
-dotnet run --project ThuongMaiDienTu/ThuongMaiDienTu.csproj
+ThuongMaiDienTu-Clean/
+├── ThuongMaiDienTu.slnx
+├── run.ps1
+├── src/ThuongMaiDienTu/             # Project web duy nhất
+├── tests/ThuongMaiDienTu.Tests/     # Project test
+├── database/thuongmaidientu.sql     # SQL duy nhất
+├── docs/
+└── scripts/clean-before-share.ps1
 ```
 
-Database duy nhất là `thuongmaidientu`; SQL duy nhất là `thuongmaidientu.sql`. Cấu hình bí mật qua User Secrets/environment variables, không ghi password thật.
+`src/ThuongMaiDienTu` là project web. Thư mục gốc là solution/repository, không phải một project web thứ hai.
 
-Chatbox là trợ lý mua sắm local tại POST `/tro-ly/hoi`; không dùng external AI API. Hỗ trợ greeting, tách intent/search term (có dấu hoặc không dấu), tối đa 5 kết quả public và order lookup theo claim server-side. Endpoint dùng anti-forgery và ASP.NET Core RateLimiter policy riêng 15 request/phút/IP.
+## Chuẩn bị database
 
-Seed idempotent duy trì 10 sản phẩm gia dụng/nội thất public có SKU, giá/tồn kho và ảnh SVG nội bộ. Dữ liệu cầu lông legacy được giữ lịch sử nhưng Product/Store/Category bị ẩn bằng trạng thái.
+1. Mở SQL Server Management Studio.
+2. Mở `database/thuongmaidientu.sql`.
+3. Chọn đúng SQL Server mà connection string đang trỏ tới.
+4. Chạy **toàn bộ file từ đầu đến cuối**, không chỉ chạy phần đầu.
+5. Kiểm tra:
 
-## Tests
+```sql
+USE thuongmaidientu;
+SELECT OBJECT_ID(N'dbo.shipping_providers', N'U') AS shipping_providers_object_id;
+```
+
+Kết quả phải khác `NULL`. Nếu bằng `NULL`, database đang dùng schema cũ hoặc file SQL chưa được chạy hết.
+
+Connection string mặc định nằm tại:
 
 ```text
-dotnet test
-dotnet test --filter "FullyQualifiedName~SqlServerMarketplaceIntegrationTests"
+src/ThuongMaiDienTu/appsettings.json
 ```
 
-SQL integration tests yêu cầu SQL Server và database `thuongmaidientu`; không tự tạo database khác hoặc drop dữ liệu. Local fallback `Encrypt=False;TrustServerCertificate=True` chỉ dành cho Development.
+## Chạy nhanh
 
-## Public routes
+Trong PowerShell tại thư mục gốc:
 
-`/`, `/san-pham`, `/san-pham/{productSlug}`, `/danh-muc/{categorySlug}`, `/cua-hang/{storeSlug}`, `/sitemap.xml`, `/robots.txt`.
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\run.ps1
+```
 
-## Tài liệu
+Hoặc chạy thủ công:
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database](docs/DATABASE.md)
-- [Roles and permissions](docs/ROLES_AND_PERMISSIONS.md)
-- [Order state machine](docs/ORDER_STATE_MACHINE.md)
-- [Shipping state machine](docs/SHIPPING_STATE_MACHINE.md)
-- [Test cases](docs/TEST_CASES.md)
-- [Test report](docs/TEST_REPORT.md)
-- [Demo flow](docs/DEMO_FLOW.md)
-- [Known limitations](docs/KNOWN_LIMITATIONS.md)
+```powershell
+dotnet restore .\ThuongMaiDienTu.slnx
+dotnet build .\ThuongMaiDienTu.slnx
+dotnet run --project .\src\ThuongMaiDienTu\ThuongMaiDienTu.csproj --launch-profile http
+```
+
+Mở `http://localhost:5205`.
+
+## Tài khoản demo
+
+| Vai trò | Email | Mật khẩu |
+|---|---|---|
+| Admin | `admin@homegoods.vn` | `Demo@123` |
+| Seller | `seller@gdviet.vn` | `Demo@123` |
+| Customer | `customer@example.com` | `Demo@123` |
+
+## Lỗi `Invalid object name 'shipping_providers'`
+
+Đây là lỗi database không đồng bộ với source code. Ứng dụng đã khởi động, nhưng database cũ chưa có module vận chuyển.
+
+Cách sửa đúng:
+
+1. Dừng ứng dụng bằng `Ctrl+C`.
+2. Backup database đang dùng nếu có dữ liệu quan trọng.
+3. Chạy lại **toàn bộ** `database/thuongmaidientu.sql` trên database `thuongmaidientu`.
+4. Chạy câu kiểm tra `OBJECT_ID` ở trên.
+5. Chạy lại `run.ps1`.
+
+Không sửa bằng cách xóa truy vấn `ShippingProviders` khỏi code vì các chức năng Carrier, shipping service, quote và shipment đều cần schema này.
+
+## Trước khi gửi ZIP
+
+```powershell
+.\scripts\clean-before-share.ps1
+```
+
+Không gửi `.git`, `.vs`, `bin`, `obj`, log, `.bak` hoặc file `.csproj.user`.

@@ -1,0 +1,138 @@
+@model CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Thanh toán";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h2 mb-1">Xác nhận đặt hàng</h1>
+        <p class="text-muted mb-0">Giá và tồn kho được kiểm tra lại khi bạn đặt hàng.</p>
+    </div>
+    <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary">Quay lại giỏ</a>
+</div>
+
+@if (Model.AvailabilityErrors.Count > 0)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold mb-1">Giỏ hàng chưa thể đặt:</div>
+        <ul class="mb-0">
+            @foreach (var error in Model.AvailabilityErrors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+<form asp-action="PlaceOrder" method="post" id="checkout-form">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <section class="card shadow-sm mb-4">
+                <div class="card-header fw-semibold">Thông tin nhận hàng</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="ReceiverName" class="form-label"></label>
+                        <input asp-for="ReceiverName" class="form-control" />
+                        <span asp-validation-for="ReceiverName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ReceiverPhone" class="form-label"></label>
+                        <input asp-for="ReceiverPhone" class="form-control" />
+                        <span asp-validation-for="ReceiverPhone" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ShippingAddress" class="form-label"></label>
+                        <textarea asp-for="ShippingAddress" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="ShippingAddress" class="text-danger"></span>
+                    </div>
+                    <div>
+                        <label asp-for="Note" class="form-label"></label>
+                        <textarea asp-for="Note" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="Note" class="text-danger"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card shadow-sm">
+                <div class="card-header fw-semibold">Phương thức thanh toán</div>
+                <div class="card-body">
+                    <div class="form-check mb-2">
+                        <input asp-for="PaymentMethod" class="form-check-input"
+                               type="radio" value="@OrderWorkflowHelper.Cod" id="payment-cod" />
+                        <label class="form-check-label" for="payment-cod">
+                            Thanh toán khi nhận hàng (COD)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input asp-for="PaymentMethod" class="form-check-input"
+                               type="radio" value="@OrderWorkflowHelper.BankTransfer" id="payment-bank" />
+                        <label class="form-check-label" for="payment-bank">
+                            Chuyển khoản (mô phỏng)
+                        </label>
+                    </div>
+                    <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                    <p class="small text-muted mt-3 mb-0">
+                        Website không thực hiện giao dịch thanh toán thật.
+                    </p>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-5">
+            <aside class="card shadow-sm">
+                <div class="card-header fw-semibold">Đơn hàng</div>
+                <div class="card-body">
+                    @foreach (var item in Model.Items)
+                    {
+                        <div class="d-flex justify-content-between gap-3 border-bottom py-2">
+                            <div>
+                                <div class="fw-semibold">@item.ProductName</div>
+                                <div class="small text-muted">
+                                    @item.SkuCode · @item.Quantity × @item.UnitPrice.ToString("N0") đ
+                                </div>
+                            </div>
+                            <div class="text-nowrap">@item.LineTotal.ToString("N0") đ</div>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <span>Tạm tính</span>
+                        <strong>@Model.Subtotal.ToString("N0") đ</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>Phí vận chuyển</span>
+                        <strong>@Model.ShippingFee.ToString("N0") đ</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-top mt-3 pt-3 fs-5">
+                        <span>Tổng cộng</span>
+                        <strong class="text-danger">@Model.TotalAmount.ToString("N0") đ</strong>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-4" id="place-order-button"
+                            disabled="@(!Model.CanPlaceOrder)">
+                        Đặt hàng
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('checkout-form')?.addEventListener('submit', event => {
+            if (!event.currentTarget.checkValidity()) return;
+            const button = document.getElementById('place-order-button');
+            if (!button || button.disabled) {
+                event.preventDefault();
+                return;
+            }
+            button.disabled = true;
+            button.textContent = 'Đang tạo đơn hàng...';
+        });
+    </script>
+}
